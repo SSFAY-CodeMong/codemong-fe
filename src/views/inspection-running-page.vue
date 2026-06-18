@@ -1,188 +1,99 @@
 <template>
-  <div class="frame10-container">
-    <div class="frame10-thq-frame-elm">
-      <div class="frame10-thq-main-canvas-elm">
-        <div class="frame10-thq-background-border-shadow-elm">
-          <div class="frame10-thq-margin-elm">
-            <div class="frame10-thq-container-elm10">
-              <div class="frame10-thq-heading1-elm">
-                <span class="frame10-thq-text-elm10">검사 진행 중</span>
-              </div>
-              <div class="frame10-thq-container-elm11">
-                <span class="frame10-thq-text-elm11">
-                  코드를 평가하고 피드백을 준비하고 있습니다. 잠시만 기다려주세요.
-                </span>
-              </div>
-            </div>
-          </div>
-          <div class="frame10-thq-step-timeline-progress-indicatorsmargin-elm">
-            <div class="frame10-thq-step-timeline-progress-indicators-elm">
-              <div class="frame10-thq-step1-active-elm">
-                <div class="frame10-thq-container-elm12">
-                  <img
-                    alt="VerticalDivider1641"
-                    src="/verticaldivider1641-6yld-200w.png"
-                    class="frame10-thq-vertical-divider-elm1"
-                  />
-                  <img
-                    alt="Background1641"
-                    src="/background1641-lajv-200h.png"
-                    class="frame10-thq-background-elm1"
-                  />
-                </div>
-                <div class="frame10-thq-container-elm13">
-                  <div class="frame10-thq-container-elm14">
-                    <span class="frame10-thq-text-elm12">
-                      GitHub Actions 실행 중
-                    </span>
-                  </div>
-                  <div class="frame10-thq-container-elm15">
-                    <span class="frame10-thq-text-elm13">
-                      가상 환경에서 코드를 빌드하고 있습니다.
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div class="frame10-thq-step2-pending-elm">
-                <div class="frame10-thq-container-elm16">
-                  <img
-                    alt="VerticalDivider1642"
-                    src="/verticaldivider1642-ibcc-200w.png"
-                    class="frame10-thq-vertical-divider-elm2"
-                  />
-                  <img
-                    alt="Background1642"
-                    src="/background1642-z32k-200h.png"
-                    class="frame10-thq-background-elm2"
-                  />
-                </div>
-                <div class="frame10-thq-container-elm17">
-                  <div class="frame10-thq-container-elm18">
-                    <span class="frame10-thq-text-elm14">
-                      테스트 결과 수집 중
-                    </span>
-                  </div>
-                  <div class="frame10-thq-container-elm19">
-                    <span class="frame10-thq-text-elm15">
-                      유닛 테스트 및 정적 분석을 수행합니다.
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div class="frame10-thq-step3-pending-elm">
-                <div class="frame10-thq-container-elm20">
-                  <img
-                    alt="Background1643"
-                    src="/background1643-rs4-200h.png"
-                    class="frame10-thq-background-elm3"
-                  />
-                </div>
-                <div class="frame10-thq-container-elm21">
-                  <div class="frame10-thq-container-elm22">
-                    <span class="frame10-thq-text-elm16">피드백 생성 중</span>
-                  </div>
-                  <div class="frame10-thq-container-elm23">
-                    <span class="frame10-thq-text-elm17">
-                      결과를 바탕으로 리뷰를 작성합니다.
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <button class="frame10-thq-loading-button-state-elm">
-            <img
-              alt="SVG1644"
-              src="/svg1644-gusd.svg"
-              class="frame10-thq-svg-elm"
-            />
-            <span class="frame10-thq-text-elm18">검사 중...</span>
-          </button>
+  <div class="app-shell">
+    <AppHeader active-page="mission" />
+    <main class="page inspection-page">
+      <section class="inspection-panel">
+        <div class="scan-visual" :class="{ done: passed, failed }">
+          <div class="scan-ring"></div>
+          <div class="scan-core">{{ status }}</div>
         </div>
-      </div>
-      <div class="frame10-thq-footer-elm">
-        <div class="frame10-thq-container-elm24">
-          <div class="frame10-thq-container-elm25">
-            <span class="frame10-thq-text-elm19">Codemong</span>
-          </div>
-          <div class="frame10-thq-container-elm26">
-            <span class="frame10-thq-text-elm20">
-              © 2024 Codemong. GitHub 공식 API 연동을 사용합니다.
-            </span>
-          </div>
-          <div class="frame10-thq-container-elm27">
-            <div class="frame10-thq-link-elm1">
-              <span class="frame10-thq-text-elm21">이용약관</span>
-            </div>
-            <div class="frame10-thq-link-elm2">
-              <span class="frame10-thq-text-elm22">개인정보 처리방침</span>
-            </div>
-          </div>
+        <div>
+          <span class="badge">checkId {{ shortCheckId }}</span>
+          <h1>{{ title }}</h1>
+          <p>{{ description }}</p>
         </div>
-      </div>
-      <div class="frame10-thq-header-top-nav-barmargin-elm">
-        <div class="frame10-thq-header-top-nav-bar-elm">
-          <div class="frame10-thq-container-elm28">
-            <div class="frame10-thq-container-elm29">
-              <span class="frame10-thq-text-elm23">Codemong</span>
-            </div>
-            <div class="frame10-thq-nav-elm">
-              <div class="frame10-thq-link-elm3">
-                <span class="frame10-thq-text-elm24">프로젝트</span>
-              </div>
-              <div class="frame10-thq-link-elm4">
-                <span class="frame10-thq-text-elm25">내 미션</span>
-              </div>
-              <div class="frame10-thq-link-elm5">
-                <span class="frame10-thq-text-elm26">진행 현황</span>
-              </div>
-              <div class="frame10-thq-link-elm6">
-                <span class="frame10-thq-text-elm27">도움말</span>
-              </div>
-            </div>
-            <button class="frame10-thq-button-elm">
-              <img
-                alt="Container1647"
-                src="/container1647-9o3i.svg"
-                class="frame10-thq-container-elm30"
-              />
-            </button>
-          </div>
+        <ol class="inspection-steps">
+          <li :class="{ active: true, done: status !== 'RUNNING' }">검사 요청 등록</li>
+          <li :class="{ active: status === 'RUNNING', done: passed || failed }">GitHub Actions 실행 대기</li>
+          <li :class="{ active: passed || failed, done: passed }">테스트 결과 수집</li>
+        </ol>
+        <p v-if="message" class="status fail">{{ message }}</p>
+        <div class="toolbar">
+          <button class="secondary" type="button" @click="poll">새로고침</button>
+          <button v-if="passed" class="primary" type="button" @click="$router.push('/mission-passed')">통과 결과 보기</button>
+          <button v-if="failed" class="danger" type="button" @click="$router.push('/mission-failed')">실패 결과 보기</button>
         </div>
-      </div>
-      <div class="frame10-thq-linear-progress-baratverytop-elm">
-        <img
-          alt="Background1647"
-          src="/background1647-f29t-200h.png"
-          class="frame10-thq-background-elm4"
-        />
-      </div>
-    </div>
+      </section>
+    </main>
+    <AppFooter />
   </div>
 </template>
 
 <script>
+import AppFooter from '../components/AppFooter.vue'
+import AppHeader from '../components/AppHeader.vue'
+import { getCodeCheckStatus, getSavedCheckId, saveCheckResult } from '../api/codemong'
+
 export default {
   name: 'InspectionRunningPage',
-  props: {},
-  metaInfo: {
-    title: 'Inspection Running',
-    meta: [
-      {
-        property: 'og:title',
-        content: 'Inspection Running',
-      },
-    ],
-    link: [
-      {
-        rel: 'canonical',
-        href: 'https://ssafy-a6xxqa.teleporthq.site/',
-      },
-    ],
+  components: { AppFooter, AppHeader },
+  data() {
+    return {
+      checkId: getSavedCheckId(),
+      status: 'RUNNING',
+      failedTests: [],
+      message: '',
+      timer: null,
+    }
+  },
+  computed: {
+    shortCheckId() {
+      return this.checkId ? this.checkId.slice(0, 8) : '-'
+    },
+    passed() {
+      return this.status === 'PASSED'
+    },
+    failed() {
+      return this.status === 'FAILED' || this.status === 'ERROR'
+    },
+    title() {
+      if (this.passed) return '검사를 통과했습니다'
+      if (this.failed) return '검사에서 확인할 문제가 있습니다'
+      return 'GitHub Actions가 코드를 검사 중입니다'
+    },
+    description() {
+      if (this.passed) return '요구사항을 만족했습니다. 결과 화면에서 다음 스텝으로 이동할 수 있습니다.'
+      if (this.failed) return '실패 원인과 테스트 메시지를 확인하고 코드 수정 방향을 정리하세요.'
+      return '원격 브랜치의 최신 커밋을 기준으로 hidden test를 실행하고 있습니다.'
+    },
+  },
+  created() {
+    if (!this.checkId) {
+      this.$router.replace('/mission-workspace')
+      return
+    }
+    this.poll()
+    this.timer = window.setInterval(this.poll, 3000)
+  },
+  beforeDestroy() {
+    window.clearInterval(this.timer)
+  },
+  methods: {
+    async poll() {
+      try {
+        const result = await getCodeCheckStatus(this.checkId)
+        this.status = result.status
+        this.failedTests = result.failedTests || []
+        this.message = result.message || ''
+        saveCheckResult(result)
+        if (this.passed || this.failed) window.clearInterval(this.timer)
+      } catch (error) {
+        this.status = 'ERROR'
+        this.message = error.message
+        saveCheckResult({ checkId: this.checkId, status: 'ERROR', message: error.message, failedTests: [] })
+        window.clearInterval(this.timer)
+      }
+    },
   },
 }
 </script>
-
-<style scoped>
-@import '../styles/views/inspection-running-page.css';
-</style>

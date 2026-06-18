@@ -1,24 +1,22 @@
 <template>
-  <div class="not-found-container1">
-    <h3>OOPS! PAGE NOT FOUND</h3>
-    <div class="not-found-container2"><h1 class="not-found-text2">404</h1></div>
-    <div class="not-found-container3">
-      <h2 class="not-found-text3">
-        WE ARE SORRY, BUT THE PAGE YOU REQUESTED WAS NOT FOUND
-      </h2>
-    </div>
+  <div class="app-shell">
+    <AppHeader />
+    <main class="page">
+      <section class="panel">
+        <h1>페이지를 찾을 수 없습니다</h1>
+        <button class="primary" type="button" @click="$router.push('/')">홈으로 이동</button>
+      </section>
+    </main>
+    <AppFooter />
   </div>
 </template>
 
 <script>
+import AppFooter from '../components/AppFooter.vue'
+import AppHeader from '../components/AppHeader.vue'
+
 export default {
   name: 'NotFoundPage',
-  metaInfo: {
-    title: '404 - Not Found',
-  },
+  components: { AppFooter, AppHeader },
 }
 </script>
-
-<style scoped>
-@import '../styles/views/not-found-page.css';
-</style>

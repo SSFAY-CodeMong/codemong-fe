@@ -1,113 +1,43 @@
 <template>
-  <div class="frame1-container">
-    <div class="frame1-thq-frame-elm">
-      <div
-        class="frame1-thq-main-top-nav-bar-suppressedbecausethisisatransactional-elm"
-      >
-        <div class="frame1-thq-background-border-elm1">
-          <img
-            alt="OverlayShadow1617"
-            src="/overlayshadow1617-n8b8-500h.png"
-            class="frame1-thq-overlay-shadow-elm"
-          />
-          <div class="frame1-thq-margin-elm1">
-            <div class="frame1-thq-container-elm10">
-              <div class="frame1-thq-simple-logo-representation-elm">
-                <img
-                  alt="Container1617"
-                  src="/container1617-v8w.svg"
-                  class="frame1-thq-container-elm11"
-                />
-              </div>
-              <div class="frame1-thq-heading1-elm">
-                <span class="frame1-thq-text-elm10">Codemong에 오신 것을 환영합니다</span>
-              </div>
-              <div class="frame1-thq-container-elm12">
-                <span class="frame1-thq-text-elm11">
-                  학습 여정을 계속하려면 로그인하세요.
-                </span>
-              </div>
-            </div>
-          </div>
-          <div class="frame1-thq-margin-elm2">
-            <div class="frame1-thq-background-border-elm2">
-              <img
-                alt="Margin1617"
-                src="/margin1617-s7um.svg"
-                class="frame1-thq-margin-elm3"
-              />
-              <div class="frame1-thq-container-elm13">
-                <span class="frame1-thq-text-elm12">
-                  <span>GitHub 계정으로 로그인하면 프로젝트 레포지토리</span>
-                  <br />
-                  <span>가 자동 생성됩니다</span>
-                </span>
-              </div>
-            </div>
-          </div>
-          <button class="frame1-thq-button-elm">
-            <img
-              alt="SVG1617"
-              src="/svg1617-by7h.svg"
-              class="frame1-thq-svg-elm"
-            />
-            <span class="frame1-thq-text-elm15">GitHub로 계속하기</span>
-          </button>
-          <div class="frame1-thq-margin-elm4">
-            <div class="frame1-thq-container-elm14">
-              <span class="frame1-thq-text-elm16">도움이 필요하신가요?</span>
-            </div>
-          </div>
+  <div class="app-shell">
+    <AppHeader />
+    <main class="page">
+      <section class="panel">
+        <h1>GitHub 로그인</h1>
+        <p>GitHub OAuth로 로그인하면 Codemong이 학습 저장소를 만들고 검사 워크플로를 실행할 수 있습니다.</p>
+        <div class="toolbar">
+          <button class="primary" type="button" @click="loginWithGithub">GitHub로 시작하기</button>
+          <button class="secondary" type="button" @click="refresh">로그인 상태 확인</button>
         </div>
-      </div>
-      <div class="frame1-thq-footer-elm">
-        <div class="frame1-thq-container-elm15">
-          <div class="frame1-thq-container-elm16">
-            <span class="frame1-thq-text-elm17">Codemong</span>
-          </div>
-          <div class="frame1-thq-container-elm17">
-            <div class="frame1-thq-container-elm18">
-              <div class="frame1-thq-link-elm1">
-                <span class="frame1-thq-text-elm18">이용약관</span>
-              </div>
-              <div class="frame1-thq-link-elm2">
-                <span class="frame1-thq-text-elm19">개인정보 처리방침</span>
-              </div>
-            </div>
-            <div class="frame1-thq-container-elm19">
-              <span class="frame1-thq-text-elm20">
-                © 2024 Codemong. GitHub 공식 API 연동을 사용합니다.
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+        <p class="muted">{{ message }}</p>
+      </section>
+    </main>
+    <AppFooter />
   </div>
 </template>
 
 <script>
+import AppFooter from '../components/AppFooter.vue'
+import AppHeader from '../components/AppHeader.vue'
+import { loginWithGithub, reissueToken } from '../api/codemong'
+
 export default {
   name: 'LoginPage',
-  props: {},
-  metaInfo: {
-    title: 'Login',
-    meta: [
-      {
-        property: 'og:title',
-        content: 'Login',
-      },
-    ],
-    link: [
-      {
-        rel: 'canonical',
-        href: 'https://ssafy-a6xxqa.teleporthq.site/',
-      },
-    ],
+  components: { AppFooter, AppHeader },
+  data() {
+    return { message: '' }
+  },
+  methods: {
+    loginWithGithub,
+    async refresh() {
+      try {
+        await reissueToken()
+        this.message = '로그인 상태가 확인되었습니다.'
+        this.$router.push('/projects')
+      } catch (error) {
+        this.message = '로그인이 필요합니다.'
+      }
+    },
   },
 }
 </script>
-
-<style scoped>
-@import '../styles/views/login-page.css';
-</style>

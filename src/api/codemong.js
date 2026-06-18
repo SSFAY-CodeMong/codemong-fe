@@ -1,123 +1,185 @@
-const delay = (payload, timeout = 120) =>
-  new Promise((resolve) => {
-    window.setTimeout(() => resolve(payload), timeout)
-  })
+const API_BASE_URL = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
+const TOKEN_KEY = 'codemong_access_token'
+const PROJECT_KEY = 'codemong_selected_project'
+const REPOSITORY_KEY = 'codemong_repository'
+const CHECK_KEY = 'codemong_check_id'
+const CHECK_RESULT_KEY = 'codemong_check_result'
+const START_REQUEST_KEY = 'codemong_project_start_request'
 
-const navigation = [
+export const getNavigation = () => [
   { key: 'projects', label: '프로젝트', path: '/projects' },
-  { key: 'mission', label: '내 미션', path: '/mission-workspace' },
+  { key: 'mission', label: '미션', path: '/mission-workspace' },
   { key: 'progress', label: '진행 현황', path: '/mission-progress' },
   { key: 'help', label: '도움말', path: '/help' },
 ]
 
-export const getNavigation = () => delay(navigation)
+function getToken() {
+  return window.localStorage.getItem(TOKEN_KEY)
+}
 
-export const getMainPage = () =>
-  delay({
-    eyebrow: '실전 프로젝트 기반 학습',
-    title: '시작이 부담스러운 프로젝트,',
-    titleAccent: 'Codemong에서 바로 완성하세요',
-    lead: '프로젝트 선택부터 GitHub 레포지토리 생성, 미션 진행, 테스트 검사, AI 피드백까지 하나의 흐름으로 연결합니다.',
-    heroStatus: {
-      label: '오늘의 미션',
-      value: '3 / 10 단계',
-      percent: 42,
-    },
-    checks: [
-      { title: '요구사항 분석', description: 'spec.md 기반 체크리스트 생성' },
-      { title: '자동 검사', description: 'GitHub Actions와 테스트 결과 수집' },
-      { title: 'AI 피드백', description: '실패 원인과 수정 방향 제안' },
-    ],
-    flowTitle: '프로젝트를 끝까지 밀고 가는 데 필요한 화면을 모두 연결했습니다',
-    flows: [
-      { number: '01', title: '프로젝트 선택', description: '난이도, 기술 스택, 단계 수를 보고 지금 도전할 프로젝트를 고릅니다.' },
-      { number: '02', title: '미션 진행', description: '요구사항과 예시 코드를 확인하고 GitHub에 작업 내용을 반영합니다.' },
-      { number: '03', title: '검사와 AI 분석', description: '테스트 실패 지점과 수정 제안을 확인하며 다음 단계로 넘어갑니다.' },
-    ],
-    metrics: [
-      { value: '10+', label: '단계별 미션' },
-      { value: '자동', label: '레포지토리 생성' },
-      { value: 'AI', label: '실패 원인 분석' },
-    ],
+export function setToken(token) {
+  if (token) window.localStorage.setItem(TOKEN_KEY, token)
+}
+
+export function clearSession() {
+  window.localStorage.removeItem(TOKEN_KEY)
+  window.localStorage.removeItem(REPOSITORY_KEY)
+  window.localStorage.removeItem(CHECK_KEY)
+  window.localStorage.removeItem(CHECK_RESULT_KEY)
+  window.localStorage.removeItem(START_REQUEST_KEY)
+}
+
+async function request(path, options = {}) {
+  const { auth = false, ...fetchOptions } = options
+  if (auth && !getToken()) {
+    try {
+      await reissueToken()
+    } catch (error) {
+      throw new Error('로그인이 필요합니다. GitHub 로그인 후 다시 시도하세요.')
+    }
+  }
+
+  const headers = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    ...(fetchOptions.headers || {}),
+  }
+  const token = getToken()
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  let response
+  try {
+    response = await window.fetch(`${API_BASE_URL}${path}`, {
+      credentials: 'include',
+      ...fetchOptions,
+      headers,
+    })
+  } catch (error) {
+    throw new Error('백엔드 서버가 꺼져 있거나 로그인 세션이 없습니다.')
+  }
+
+  if (response.status === 204) return null
+  const text = await response.text()
+  let data = null
+  try {
+    data = text ? JSON.parse(text) : null
+  } catch (error) {
+    throw new Error('API가 JSON이 아닌 응답을 반환했습니다. 로그인 상태를 확인하세요.')
+  }
+  if (!response.ok) {
+    const message = data && (data.message || data.error || data.errorCode)
+    throw new Error(message || `HTTP ${response.status}`)
+  }
+  return data
+}
+
+export async function reissueToken() {
+  const data = await request('/auth/reissue', { method: 'POST' })
+  setToken(data.accessToken)
+  return data.accessToken
+}
+
+export function loginWithGithub() {
+  window.location.href = `${API_BASE_URL}/oauth2/authorization/github`
+}
+
+export async function logout() {
+  try {
+    await request('/auth/logout', { auth: true, method: 'POST' })
+  } finally {
+    clearSession()
+  }
+}
+
+export const getMe = () => request('/users/me', { auth: true })
+export const getProjects = () => request('/projects')
+export const getProject = projectId => request(`/projects/${projectId}`)
+export const getProjectSteps = projectId => request(`/projects/${projectId}/steps`)
+export const getStepSpec = (projectId, step) => request(`/projects/${projectId}/steps/${step}/spec`)
+
+export async function startProject(projectId, payload) {
+  const data = await request(`/github/repositories/${projectId}`, {
+    auth: true,
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+  saveRepository(data)
+  window.localStorage.removeItem(START_REQUEST_KEY)
+  return data
+}
+
+export const getLearningRepositories = () => request('/github/learning-repositories', { auth: true })
+export const getRepositoryStatus = repositoryId => request(`/github/repositories/${repositoryId}/status`, { auth: true })
+export const getRepositoryCompleted = repositoryId => request(`/github/repositories/${repositoryId}/completed`, { auth: true })
+export const deleteLearningRepository = repositoryId =>
+  request(`/github/repositories/${repositoryId}`, { auth: true, method: 'DELETE' })
+
+export async function moveNextStep(repositoryId, payload = {}) {
+  const data = await request(`/github/repositories/${repositoryId}/next`, {
+    auth: true,
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+  const current = getSavedRepository() || {}
+  saveRepository({ ...current, repositoryId: data.repositoryId })
+  return data
+}
+
+export async function startCodeCheck(repositoryId, step) {
+  const data = await request(`/code-check/repositories/${repositoryId}/steps/${step}`, {
+    auth: true,
+    method: 'POST',
+  })
+  window.localStorage.setItem(CHECK_KEY, data.checkId)
+  return data
+}
+
+export const getCodeCheckStatus = checkId => request(`/code-check/checks/${checkId}`, { auth: true })
+export const askCodeQuestion = (repositoryId, question) =>
+  request(`/ai/repositories/${repositoryId}/questions`, {
+    auth: true,
+    method: 'POST',
+    body: JSON.stringify({ question }),
   })
 
-export const getProjects = () =>
-  delay({
-    title: '프로젝트',
-    description: '도전할 프로젝트를 선택하고 학습을 시작하세요.',
-    selectedId: 'board',
-    projects: [
-      {
-        id: 'coffee',
-        title: '카페 주문 시스템',
-        difficulty: '중간',
-        category: '백엔드',
-        steps: 24,
-        description: '실시간 주문 처리와 상태 관리를 위한 비동기 통신 및 복잡한 상태 관리 패턴을 학습합니다.',
-        goals: ['주문 상태 모델링', '비동기 API 설계', '운영자 화면 상태 동기화'],
-        stacks: ['Spring Boot', 'JPA', 'Redis', 'MySQL'],
-      },
-      {
-        id: 'comments',
-        title: '댓글/검증 미션',
-        difficulty: '높음',
-        category: '풀스택',
-        steps: 18,
-        description: '계층형 데이터 구조 설계와 보안을 고려한 입력값 검증 로직을 구현합니다.',
-        goals: ['대댓글 구조 설계', '입력값 검증', '권한 기반 수정/삭제'],
-        stacks: ['Vue', 'Node.js', 'PostgreSQL', 'JWT'],
-      },
-      {
-        id: 'board',
-        title: '게시판 만들기',
-        difficulty: '낮음',
-        category: '프론트엔드',
-        steps: 5,
-        description: '사용자가 글을 작성, 조회, 수정, 삭제할 수 있는 기본적인 게시판 인터페이스를 구현합니다. 컴포넌트 분리와 상태 관리의 기초를 다집니다.',
-        goals: ['Vue를 활용한 컴포넌트 기반 UI 설계', 'RESTful API 연동 및 비동기 상태 관리', 'CSS를 이용한 반응형 레이아웃 구현'],
-        stacks: ['Vue', 'JavaScript', 'CSS', 'Pinia'],
-      },
-    ],
-  })
+export function saveSelectedProject(project) {
+  window.localStorage.setItem(PROJECT_KEY, JSON.stringify(project))
+}
 
-export const getMissionWorkspace = () =>
-  delay({
-    projectName: '파이썬 기초 마스터',
-    progressText: '4/10',
-    steps: ['1. 환경 설정', '2. 변수와 타입', '3. 조건문 제어', '4. 함수 작성하기', '5. 리스트 다루기'],
-    successTitle: '축하합니다! 모든 테스트를 통과했습니다.',
-    successMessage: '작성하신 코드가 요구사항을 완벽하게 충족했습니다. 훌륭한 작업입니다!',
-    missionBadge: '미션 4',
-    missionTitle: '간단한 계산기 함수 만들기',
-    missionDescription: '두 개의 숫자를 입력받아 그 합을 반환하는 add_numbers 함수를 완성하세요.',
-    requirements: [
-      '함수 이름이 add_numbers인가?',
-      '두 개의 매개변수(a, b)를 입력 받는가?',
-      '반환값이 두 매개변수의 합과 정확히 일치하는가?',
-      '음수 및 0에 대한 엣지 케이스 테스트 통과',
-    ],
-    fileName: 'main.py',
-    status: '통과',
-  })
+export function getSelectedProject() {
+  return JSON.parse(window.localStorage.getItem(PROJECT_KEY) || 'null')
+}
 
-export const getMissionProgress = () =>
-  delay({
-    stepBadge: '3단계',
-    projectName: 'React 대시보드',
-    title: '인증 및 상태 관리 구현',
-    description: '사용자 인증 흐름을 구현하고 전역 상태를 관리하는 방법을 학습합니다. Context API를 활용하여 로그인 상태를 애플리케이션 전체에 공유하세요.',
-    requirementStatus: '1 / 3 완료',
-    requirements: [
-      { title: '사용자 로그인 컨텍스트 구현', description: 'AuthContext와 AuthProvider를 생성하여 상태 제공', status: 'completed' },
-      { title: 'Mock API 연결', description: 'API 응답 지연 처리 누락', status: 'failing' },
-      { title: 'LocalStorage에 토큰 저장', description: '로그인 성공 시 JWT 토큰을 브라우저에 저장', status: 'pending' },
-    ],
-    progressLabel: '전체 10단계 중 3단계',
-    progressPercent: '30%',
-    steps: ['프로젝트 세팅', '라우팅 설정', '인증 및 상태 관리', '대시보드 레이아웃'],
-    activities: [
-      { title: '검사 실패: Mock API 연결', time: '10분 전' },
-      { title: 'GitHub에 코드 푸시됨', time: '15분 전' },
-      { title: '3단계 시작함', time: '2시간 전' },
-    ],
-  })
+export function saveRepository(repository) {
+  window.localStorage.setItem(REPOSITORY_KEY, JSON.stringify(repository))
+}
+
+export function getSavedRepository() {
+  return JSON.parse(window.localStorage.getItem(REPOSITORY_KEY) || 'null')
+}
+
+export function getSavedCheckId() {
+  return window.localStorage.getItem(CHECK_KEY)
+}
+
+export function saveCheckResult(result) {
+  window.localStorage.setItem(CHECK_RESULT_KEY, JSON.stringify(result))
+}
+
+export function getSavedCheckResult() {
+  return JSON.parse(window.localStorage.getItem(CHECK_RESULT_KEY) || 'null')
+}
+
+export function saveProjectStartRequest(request) {
+  window.localStorage.setItem(START_REQUEST_KEY, JSON.stringify(request))
+}
+
+export function getProjectStartRequest() {
+  return JSON.parse(window.localStorage.getItem(START_REQUEST_KEY) || 'null')
+}
+
+export function stepNumber(step) {
+  if (!step) return 1
+  const match = String(step).match(/\d+/)
+  return match ? Number(match[0]) : 1
+}

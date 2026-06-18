@@ -1,117 +1,67 @@
 <template>
-  <main class="main-page">
-    <AppHeader active-page="home" :navigation="navigation" />
-
-    <section class="main-page__hero">
-      <div class="main-page__hero-copy">
-        <p class="main-page__eyebrow">{{ page.eyebrow }}</p>
-        <h1>
-          {{ page.title }}
-          <span>{{ page.titleAccent }}</span>
-        </h1>
-        <p class="main-page__lead">
-          {{ page.lead }}
-        </p>
-        <div class="main-page__hero-actions">
-          <button class="main-page__primary main-page__primary--large" type="button" @click="$router.push('/projects')">
-            프로젝트 시작하기
-          </button>
-          <button class="main-page__secondary" type="button" @click="$router.push('/help')">
-            진행 방식 보기
-          </button>
-        </div>
-      </div>
-      <div class="main-page__hero-panel" aria-label="Codemong 진행 예시">
-        <div class="main-page__panel-top">
-          <span>{{ page.heroStatus.label }}</span>
-          <strong>{{ page.heroStatus.value }}</strong>
-        </div>
-        <div class="main-page__progress">
-          <span :style="{ width: `${page.heroStatus.percent}%` }"></span>
-        </div>
-        <div class="main-page__checks">
-          <div v-for="check in page.checks" :key="check.title">
-            <strong>{{ check.title }}</strong>
-            <span>{{ check.description }}</span>
+  <div class="app-shell">
+    <AppHeader />
+    <main class="home-page">
+      <section class="home-hero">
+        <div class="home-hero__copy">
+          <span class="badge">GitHub Actions 기반 미션 러너</span>
+          <h1>Codemong</h1>
+          <p>
+            프로젝트를 고르면 학습 저장소와 브랜치를 만들고, 요구사항을 구현한 뒤 검사 결과로 다음 스텝을 여는 실습 환경입니다.
+          </p>
+          <div class="toolbar">
+            <button class="primary" type="button" @click="$router.push('/projects')">프로젝트 시작</button>
+            <button class="secondary" type="button" @click="$router.push('/mission-progress')">진행 현황</button>
           </div>
         </div>
-      </div>
-    </section>
+        <div class="bubble-stage" aria-hidden="true">
+          <div class="bubble bubble--repo">
+            <strong>Repository</strong>
+            <span>codemong-mmcafe-0</span>
+          </div>
+          <div class="bubble bubble--branch">
+            <strong>Branch</strong>
+            <span>mmcafe-step01</span>
+          </div>
+          <div class="bubble bubble--check">
+            <strong>Check</strong>
+            <span>GitHub Actions RUNNING</span>
+          </div>
+          <div class="bubble bubble--pass">
+            <strong>Next Step</strong>
+            <span>step02 unlocked</span>
+          </div>
+        </div>
+      </section>
 
-    <section class="main-page__section">
-      <div class="main-page__section-heading">
-        <p>학습 흐름</p>
-        <h2>{{ page.flowTitle }}</h2>
-      </div>
-      <div class="main-page__cards">
-        <article v-for="flow in page.flows" :key="flow.number">
-          <span>{{ flow.number }}</span>
-          <h3>{{ flow.title }}</h3>
-          <p>{{ flow.description }}</p>
+      <section class="page home-grid">
+        <article class="card">
+          <span class="badge">01</span>
+          <h2>프로젝트 선택</h2>
+          <p>백엔드/프론트 타입과 시작 스텝을 확인하고 GitHub 저장소 생성을 요청합니다.</p>
         </article>
-      </div>
-    </section>
-
-    <section class="main-page__metrics">
-      <div v-for="metric in page.metrics" :key="metric.label">
-        <strong>{{ metric.value }}</strong>
-        <span>{{ metric.label }}</span>
-      </div>
-    </section>
-
+        <article class="card">
+          <span class="badge">02</span>
+          <h2>미션 수행</h2>
+          <p>생성된 저장소에서 TODO와 spec을 확인하고 코드를 push합니다.</p>
+        </article>
+        <article class="card">
+          <span class="badge">03</span>
+          <h2>검사와 진행</h2>
+          <p>검사 요청은 checkId로 비동기 처리되고, 통과한 브랜치만 다음 스텝으로 이동합니다.</p>
+        </article>
+      </section>
+    </main>
     <AppFooter />
-  </main>
+  </div>
 </template>
 
 <script>
 import AppFooter from '../components/AppFooter.vue'
 import AppHeader from '../components/AppHeader.vue'
-import { getMainPage, getNavigation } from '../api/codemong'
 
 export default {
   name: 'MainPage',
-  components: {
-    AppFooter,
-    AppHeader,
-  },
-  props: {},
-  data() {
-    return {
-      navigation: [],
-      page: {
-        eyebrow: '',
-        title: '',
-        titleAccent: '',
-        lead: '',
-        heroStatus: {
-          label: '',
-          value: '',
-          percent: 0,
-        },
-        checks: [],
-        flowTitle: '',
-        flows: [],
-        metrics: [],
-      },
-    }
-  },
-  async created() {
-    const [navigation, page] = await Promise.all([getNavigation(), getMainPage()])
-    this.navigation = navigation
-    this.page = page
-  },
-  metaInfo: {
-    title: 'Codemong',
-    meta: [
-      {
-        property: 'og:title',
-        content: 'Codemong',
-      },
-    ],
-  },
+  components: { AppFooter, AppHeader },
 }
 </script>
-
-<style scoped>
-@import '../styles/views/main-page.css';
-</style>

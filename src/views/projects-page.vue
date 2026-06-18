@@ -1,137 +1,60 @@
 <template>
-  <div class="frame5-container">
-    <AppHeader active-page="projects" :navigation="navigation" />
-    <div class="frame5-thq-frame-elm">
-      <div class="frame5-thq-main-content-canvas-elm">
-        <div class="frame5-thq-left-column-project-list-elm">
-          <div class="frame5-thq-margin-elm1">
-            <div class="frame5-thq-container-elm10">
-              <div class="frame5-thq-heading1-elm">
-                <span class="frame5-thq-text-elm10">{{ page.title }}</span>
-              </div>
-              <div class="frame5-thq-container-elm11">
-                <span class="frame5-thq-text-elm11">{{ page.description }}</span>
-              </div>
-            </div>
-          </div>
+  <div class="app-shell">
+    <AppHeader active-page="projects" />
+    <main class="projects-page fx-grid-bg">
+      <section class="projects-hero">
+        <img :src="heroImage" alt="Developers reviewing code on monitors" />
+        <div>
+          <span class="badge">Project Catalog</span>
+          <h1>실전 프로젝트로 스텝을 열어가세요</h1>
+          <p>starter 코드, GitHub 브랜치, Actions 검사를 하나의 학습 흐름으로 묶었습니다.</p>
+        </div>
+      </section>
 
-          <div class="frame5-thq-container-elm12">
-            <div
-              v-for="(project, index) in projects"
-              :key="project.id"
-              :class="cardClass(index, project)"
-              @click="selectProject(project)"
-            >
-              <div :class="`frame5-thq-container-elm${13 + index * 8}`">
-                <span :class="`frame5-thq-text-elm${12 + index * 5}`">{{ project.title }}</span>
-                <div :class="`frame5-thq-background-elm${index + 1}`">
-                  <span :class="`frame5-thq-text-elm${13 + index * 5}`">{{ project.difficulty }}</span>
-                </div>
+      <section class="page project-catalog">
+        <div class="project-list">
+          <p v-if="error" class="status fail">{{ error }}</p>
+          <article
+            v-for="project in projects"
+            :key="project.id"
+            class="project-card-rich project-card-no-image"
+            :class="{ selected: selected && selected.id === project.id }"
+            @click="select(project)"
+          >
+            <div class="project-icon">{{ project.type }}</div>
+            <div>
+              <span class="badge">{{ project.category }}</span>
+              <h2>{{ project.title || project.name }}</h2>
+              <p>{{ project.description }}</p>
+              <div class="project-meta">
+                <span>{{ maxStep(project) }} steps</span>
+                <span>{{ project.difficulty }}</span>
+                <span>{{ project.type }}</span>
               </div>
-              <div :class="`frame5-thq-container-elm${14 + index * 8}`">
-                <span :class="`frame5-thq-text-elm${14 + index * 5}`">{{ project.description }}</span>
-              </div>
-              <div :class="`frame5-thq-horizontal-border-elm${index + 1}`">
-                <div :class="`frame5-thq-container-elm${15 + index * 8}`">
-                  <img
-                    alt=""
-                    :src="projectMetaIcons[index].category"
-                    :class="`frame5-thq-container-elm${16 + index * 8}`"
-                  />
-                  <div :class="`frame5-thq-container-elm${17 + index * 8}`">
-                    <span :class="`frame5-thq-text-elm${15 + index * 5}`">{{ project.category }}</span>
-                  </div>
-                </div>
-                <div :class="`frame5-thq-container-elm${18 + index * 8}`">
-                  <img
-                    alt=""
-                    :src="projectMetaIcons[index].steps"
-                    :class="`frame5-thq-container-elm${19 + index * 8}`"
-                  />
-                  <div :class="`frame5-thq-container-elm${20 + index * 8}`">
-                    <span :class="`frame5-thq-text-elm${16 + index * 5}`">{{ project.steps }}단계</span>
-                  </div>
-                </div>
-              </div>
-              <img
-                v-if="project.id === selectedProject.id"
-                alt=""
-                src="/background1615-6gjxe-200w.png"
-                class="frame5-thq-background-elm4"
-              />
             </div>
-          </div>
+          </article>
         </div>
 
-        <div class="frame5-thq-aside-right-sidebar-project-detail-summary-elm">
-          <div class="frame5-thq-background-border-elm">
-            <img
-              alt=""
-              src="/overlayshadow1615-nnay-500h.png"
-              class="frame5-thq-overlay-shadow-elm"
-            />
-            <div class="frame5-thq-container-elm37">
-              <div class="frame5-thq-container-elm38">
-                <div class="frame5-thq-background-elm5">
-                  <span class="frame5-thq-text-elm27">{{ selectedProject.category }}</span>
-                </div>
-                <div class="frame5-thq-background-elm6">
-                  <span class="frame5-thq-text-elm28">{{ selectedProject.difficulty }}</span>
-                </div>
-              </div>
-              <div class="frame5-thq-heading2-elm">
-                <span class="frame5-thq-text-elm29">{{ selectedProject.title }}</span>
-              </div>
-              <div class="frame5-thq-container-elm39">
-                <span class="frame5-thq-text-elm30">{{ selectedProject.description }}</span>
-              </div>
-            </div>
-
-            <div class="frame5-thq-container-elm40">
-              <div class="frame5-thq-heading4-elm1">
-                <span class="frame5-thq-text-elm34">핵심 학습 목표</span>
-              </div>
-              <div class="frame5-thq-list-elm">
-                <div
-                  v-for="(goal, index) in selectedProject.goals"
-                  :key="goal"
-                  :class="`frame5-thq-item-elm${index + 1}`"
-                >
-                  <img
-                    alt=""
-                    :src="goalIcons[index]"
-                    :class="`frame5-thq-margin-elm${index + 2}`"
-                  />
-                  <span :class="`frame5-thq-text-elm${35 + index}`">{{ goal }}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="frame5-thq-container-elm41">
-              <div class="frame5-thq-heading4-elm2">
-                <span class="frame5-thq-text-elm38">기술 스택</span>
-              </div>
-              <div class="frame5-thq-container-elm42">
-                <div
-                  v-for="(stack, index) in selectedProject.stacks"
-                  :key="stack"
-                  :class="`frame5-thq-border-elm${index + 1}`"
-                >
-                  <span :class="`frame5-thq-text-elm${39 + index}`">{{ stack }}</span>
-                </div>
-              </div>
-            </div>
-
-            <button class="frame5-thq-button-elm1" @click="$router.push('/project-setup')">
-              <div class="frame5-thq-container-elm43">
-                <span class="frame5-thq-text-elm43">시작 스텝 선택하기</span>
-              </div>
-              <img alt="" src="/container1616-i30t.svg" class="frame5-thq-container-elm44" />
-            </button>
+        <aside class="project-detail-rich" v-if="selected">
+          <span class="badge">{{ selected.category }}</span>
+          <h2>{{ selected.title || selected.name }}</h2>
+          <p>{{ selected.description }}</p>
+          <div class="detail-block">
+            <h3>학습 목표</h3>
+            <ul class="check-list detail-check-list">
+              <li v-for="goal in selected.goals" :key="goal">{{ goal }}</li>
+            </ul>
           </div>
-        </div>
-      </div>
-    </div>
+          <div class="detail-block">
+            <h3>기술 스택</h3>
+            <div class="tag-row detail-tag-row">
+              <span v-for="stack in selected.stacks" :key="stack">{{ stack }}</span>
+            </div>
+          </div>
+          <button class="primary" type="button" @click="goSetup">시작 스텝 선택</button>
+        </aside>
+      </section>
+    </main>
     <AppFooter />
   </div>
 </template>
@@ -139,75 +62,39 @@
 <script>
 import AppFooter from '../components/AppFooter.vue'
 import AppHeader from '../components/AppHeader.vue'
-import { getNavigation, getProjects } from '../api/codemong'
-
-const emptyProject = {
-  id: '',
-  title: '',
-  difficulty: '',
-  category: '',
-  steps: 0,
-  description: '',
-  goals: [],
-  stacks: [],
-}
+import { getProjects, saveSelectedProject } from '../api/codemong'
 
 export default {
   name: 'ProjectsPage',
-  components: {
-    AppFooter,
-    AppHeader,
-  },
-  props: {},
+  components: { AppFooter, AppHeader },
   data() {
     return {
-      navigation: [],
-      page: {
-        title: '',
-        description: '',
-      },
-      projects: [emptyProject, emptyProject, emptyProject],
-      selectedProject: {
-        ...emptyProject,
-        goals: ['', '', ''],
-        stacks: ['', '', '', ''],
-      },
-      goalIcons: ['/margin1615-5ajf.svg', '/margin1615-td2fpf.svg', '/margin1615-yev.svg'],
-      projectMetaIcons: [
-        { category: '/container1615-fzak.svg', steps: '/container1615-da6f.svg' },
-        { category: '/container1615-up1b.svg', steps: '/container1615-rtlk.svg' },
-        { category: '/container1615-uume.svg', steps: '/container1615-t2c.svg' },
-      ],
+      projects: [],
+      selected: null,
+      error: '',
+      heroImage: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1400&q=80',
     }
   },
   async created() {
-    const [navigation, page] = await Promise.all([getNavigation(), getProjects()])
-    this.navigation = navigation
-    this.page = page
-    this.projects = page.projects
-    this.selectedProject = page.projects.find((project) => project.id === page.selectedId) || page.projects[0]
+    try {
+      this.projects = await getProjects()
+      this.selected = this.projects[0] || null
+      if (!this.projects.length) this.error = '등록된 프로젝트가 없습니다. 백엔드 seed 데이터를 확인하세요.'
+    } catch (error) {
+      this.error = error.message
+    }
   },
   methods: {
-    cardClass(index, project) {
-      if (project.id === this.selectedProject.id) return 'frame5-thq-project-card1-active-elm'
-      return index === 0 ? 'frame5-thq-project-card2-elm' : 'frame5-thq-project-card3-elm'
+    select(project) {
+      this.selected = project
     },
-    selectProject(project) {
-      this.selectedProject = project
+    maxStep(project) {
+      return project.maxStep || project.steps || 5
     },
-  },
-  metaInfo: {
-    title: '프로젝트',
-    meta: [
-      {
-        property: 'og:title',
-        content: '프로젝트',
-      },
-    ],
+    goSetup() {
+      saveSelectedProject(this.selected)
+      this.$router.push('/project-setup')
+    },
   },
 }
 </script>
-
-<style scoped>
-@import '../styles/views/projects-page.css';
-</style>

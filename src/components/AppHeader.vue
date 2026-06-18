@@ -1,72 +1,59 @@
 <template>
-  <header class="codemong-header">
-    <div class="codemong-header__inner">
-      <button class="codemong-header__brand" type="button" @click="go('/')">
-        {{ brandName }}
+  <header class="app-header">
+    <button class="brand" type="button" @click="$router.push('/')">Codemong</button>
+    <nav>
+      <button
+        v-for="item in navigation"
+        :key="item.key"
+        type="button"
+        :class="{ active: item.key === activePage }"
+        @click="$router.push(item.path)"
+      >
+        {{ item.label }}
       </button>
-      <nav class="codemong-header__nav" aria-label="주요 메뉴">
-        <button
-          v-for="item in navigation"
-          :key="item.path"
-          type="button"
-          :class="{ 'is-active': item.key === activePage }"
-          @click="go(item.path)"
-        >
-          {{ item.label }}
-        </button>
-      </nav>
-      <div class="codemong-header__actions">
-        <button
-          class="codemong-header__icon-button"
-          type="button"
-          aria-label="내 미션"
-          @click="go('/mission-workspace')"
-        >
-          <span>◎</span>
-        </button>
-        <button class="codemong-header__primary" type="button" @click="go('/login')">
-          {{ ctaLabel }}
-        </button>
-      </div>
+    </nav>
+    <div class="header-actions">
+      <span v-if="user" class="user-chip">{{ user.name || user.email || 'GitHub User' }}</span>
+      <button v-if="user" class="secondary small" type="button" @click="logout">로그아웃</button>
+      <button v-else class="primary small" type="button" @click="$router.push('/login')">GitHub 로그인</button>
     </div>
   </header>
 </template>
 
 <script>
+import { clearSession, getMe, getNavigation, logout } from '../api/codemong'
+
 export default {
   name: 'AppHeader',
   props: {
     activePage: {
       type: String,
-      default: 'home',
-    },
-    brandName: {
-      type: String,
-      default: 'Codemong',
-    },
-    ctaLabel: {
-      type: String,
-      default: 'GitHub로 시작하기',
-    },
-    navigation: {
-      type: Array,
-      default: () => [
-        { key: 'projects', label: '프로젝트', path: '/projects' },
-        { key: 'mission', label: '내 미션', path: '/mission-workspace' },
-        { key: 'progress', label: '진행 현황', path: '/mission-progress' },
-        { key: 'help', label: '도움말', path: '/help' },
-      ],
+      default: '',
     },
   },
+  data() {
+    return {
+      navigation: getNavigation(),
+      user: null,
+    }
+  },
+  async created() {
+    try {
+      this.user = await getMe()
+    } catch (error) {
+      this.user = null
+    }
+  },
   methods: {
-    go(path) {
-      if (this.$route && this.$route.path === path) return
-      this.$router.push(path)
+    async logout() {
+      try {
+        await logout()
+      } catch (error) {
+        clearSession()
+      }
+      this.user = null
+      this.$router.push('/')
     },
   },
 }
 </script>
-
-<style scoped>
-@import '../styles/components/app-header.css';
-</style>
