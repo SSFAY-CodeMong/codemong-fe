@@ -112,7 +112,31 @@ export default new Router({
     {
       name: 'MailServicePage',
       path: '/mail-service',
+      redirect: '/mail-service/settings',
+    },
+    {
+      name: 'MailServiceSettingsPage',
+      path: '/mail-service/settings',
       component: MailServicePage,
+      props: { section: 'settings' },
+    },
+    {
+      name: 'MailServiceSolvePage',
+      path: '/mail-service/solve',
+      component: MailServicePage,
+      props: { section: 'solve' },
+    },
+    {
+      name: 'MailServiceContentsPage',
+      path: '/mail-service/contents',
+      component: MailServicePage,
+      props: { section: 'contents' },
+    },
+    {
+      name: 'MailServiceLogsPage',
+      path: '/mail-service/logs',
+      component: MailServicePage,
+      props: { section: 'logs' },
     },
     {
       name: 'HelpPage',
