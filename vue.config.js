@@ -2,6 +2,7 @@ const path = require('path')
 
 module.exports = {
   devServer: {
+    port: 5173,
     allowedHosts: "all",
     historyApiFallback: true,
   },

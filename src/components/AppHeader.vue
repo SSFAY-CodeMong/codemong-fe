@@ -52,7 +52,9 @@ export default {
         clearSession()
       }
       this.user = null
-      this.$router.push('/')
+      if (this.$route.path !== '/') {
+        this.$router.push('/')
+      }
     },
   },
 }
