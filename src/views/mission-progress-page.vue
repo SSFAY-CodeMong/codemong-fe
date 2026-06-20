@@ -95,7 +95,7 @@ export default {
       return stepNumber(repo.status && repo.status.currentStep)
     },
     maxStep(repo) {
-      return repo.maxStep || repo.steps || 5
+      return repo.maxStep || repo.steps || repo.status && repo.status.maxStep || 5
     },
     percent(repo) {
       const max = this.maxStep(repo)

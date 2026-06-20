@@ -4,12 +4,14 @@ const PROJECT_KEY = 'codemong_selected_project'
 const REPOSITORY_KEY = 'codemong_repository'
 const CHECK_KEY = 'codemong_check_id'
 const CHECK_RESULT_KEY = 'codemong_check_result'
+const CHECK_REQUEST_KEY = 'codemong_check_request'
 const START_REQUEST_KEY = 'codemong_project_start_request'
 
 export const getNavigation = () => [
   { key: 'projects', label: '프로젝트', path: '/projects' },
   { key: 'mission', label: '미션', path: '/mission-workspace' },
   { key: 'progress', label: '진행 현황', path: '/mission-progress' },
+  { key: 'mail', label: '메일서비스', path: '/mail-service' },
   { key: 'help', label: '도움말', path: '/help' },
 ]
 
@@ -26,6 +28,7 @@ export function clearSession() {
   window.localStorage.removeItem(REPOSITORY_KEY)
   window.localStorage.removeItem(CHECK_KEY)
   window.localStorage.removeItem(CHECK_RESULT_KEY)
+  window.localStorage.removeItem(CHECK_REQUEST_KEY)
   window.localStorage.removeItem(START_REQUEST_KEY)
 }
 
@@ -111,6 +114,7 @@ export async function startProject(projectId, payload) {
 export const getLearningRepositories = () => request('/github/learning-repositories', { auth: true })
 export const getRepositoryStatus = repositoryId => request(`/github/repositories/${repositoryId}/status`, { auth: true })
 export const getRepositoryCompleted = repositoryId => request(`/github/repositories/${repositoryId}/completed`, { auth: true })
+export const getRepositoryReports = repositoryId => request(`/reports/repositories/${repositoryId}`, { auth: true })
 export const deleteLearningRepository = repositoryId =>
   request(`/github/repositories/${repositoryId}`, { auth: true, method: 'DELETE' })
 
@@ -135,12 +139,35 @@ export async function startCodeCheck(repositoryId, step) {
 }
 
 export const getCodeCheckStatus = checkId => request(`/code-check/checks/${checkId}`, { auth: true })
+export const reviewCode = (repositoryId, step) =>
+  request(`/ai/repositories/${repositoryId}/steps/${step}/review`, {
+    auth: true,
+    method: 'POST',
+  })
 export const askCodeQuestion = (repositoryId, question) =>
   request(`/ai/repositories/${repositoryId}/questions`, {
     auth: true,
     method: 'POST',
     body: JSON.stringify({ question }),
   })
+export const getMailDashboard = () => request('/mail/dashboard', { auth: true })
+export const updateMailSubscription = (enabled, email = '') =>
+  request('/mail/subscription', {
+    auth: true,
+    method: 'PUT',
+    body: JSON.stringify({ enabled, email }),
+  })
+export const sendTestMail = () => request('/mail/send-test', { auth: true, method: 'POST' })
+export const getRandomMailQuestion = () => request('/mail/questions/random', { auth: true })
+export const submitMailAnswer = (questionId, payload) =>
+  request(`/mail/questions/${questionId}/answers`, {
+    auth: true,
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+export const getMailAnswers = () => request('/mail/answers', { auth: true })
+export const getMailContents = () => request('/mail/contents', { auth: true })
+export const getMailContent = id => request(`/mail/contents/${id}`, { auth: true })
 
 export function saveSelectedProject(project) {
   window.localStorage.setItem(PROJECT_KEY, JSON.stringify(project))
@@ -168,6 +195,14 @@ export function saveCheckResult(result) {
 
 export function getSavedCheckResult() {
   return JSON.parse(window.localStorage.getItem(CHECK_RESULT_KEY) || 'null')
+}
+
+export function saveCodeReviewRequest(request) {
+  window.localStorage.setItem(CHECK_REQUEST_KEY, JSON.stringify(request))
+}
+
+export function getCodeReviewRequest() {
+  return JSON.parse(window.localStorage.getItem(CHECK_REQUEST_KEY) || 'null')
 }
 
 export function saveProjectStartRequest(request) {

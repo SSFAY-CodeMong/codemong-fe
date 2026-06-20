@@ -56,7 +56,7 @@
             <h2>저장소 정보</h2>
             <dl>
               <div><dt>프로젝트</dt><dd>{{ status.projectName }}</dd></div>
-              <div><dt>현재 스텝</dt><dd>{{ status.currentStep }}</dd></div>
+              <div><dt>현재 스텝</dt><dd>{{ currentStep }} / {{ maxStep }}</dd></div>
               <div><dt>브랜치</dt><dd>{{ status.branchName }}</dd></div>
             </dl>
             <a v-if="status.htmlUrl" :href="status.htmlUrl" target="_blank" rel="noreferrer">GitHub에서 열기</a>
@@ -64,7 +64,10 @@
         </div>
 
         <div class="mission-actions">
-          <button v-if="status.currentStepPassed" class="primary" type="button" @click="$router.push('/next-step-loading')">
+          <button v-if="status.currentStepPassed && status.completed" class="primary" type="button" @click="$router.push('/completion')">
+            완료 화면으로 이동
+          </button>
+          <button v-else-if="status.currentStepPassed" class="primary" type="button" @click="$router.push('/next-step-loading')">
             다음 스텝으로 이동
           </button>
           <button v-else class="primary" type="button" @click="startCheck" :disabled="checking">
@@ -87,8 +90,8 @@ import {
   getRepositoryStatus,
   getSavedRepository,
   getStepSpec,
+  saveCodeReviewRequest,
   saveRepository,
-  startCodeCheck,
   stepNumber,
 } from '../api/codemong'
 
@@ -104,6 +107,14 @@ export default {
       checking: false,
       message: '',
     }
+  },
+  computed: {
+    currentStep() {
+      return stepNumber(this.status.currentStep)
+    },
+    maxStep() {
+      return this.status.maxStep || this.selected && this.selected.maxStep || 5
+    },
   },
   async created() {
     await this.loadRepositories()
@@ -122,8 +133,8 @@ export default {
     },
     async selectRepository(repo) {
       this.selected = repo
-      saveRepository(repo)
       this.status = await getRepositoryStatus(repo.repositoryId)
+      saveRepository({ ...repo, ...this.status })
       const step = stepNumber(this.status.currentStep)
       this.spec = await getStepSpec(this.status.projectId, step)
     },
@@ -143,7 +154,13 @@ export default {
       this.message = ''
       try {
         const step = stepNumber(this.status.currentStep)
-        await startCodeCheck(this.status.repositoryId, step)
+        saveCodeReviewRequest({
+          repositoryId: this.status.repositoryId,
+          projectId: this.status.projectId,
+          step,
+          currentStep: this.status.currentStep,
+          maxStep: this.maxStep,
+        })
         this.$router.push('/inspection-running')
       } catch (error) {
         this.message = error.message

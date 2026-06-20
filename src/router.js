@@ -17,6 +17,8 @@ import FrontendAiFeedbackPage from './views/frontend-ai-feedback-page'
 import BackendAiFeedbackPage from './views/backend-ai-feedback-page'
 import NextStepLoadingPage from './views/next-step-loading-page'
 import CompletionPage from './views/completion-page'
+import ReportsPage from './views/reports-page'
+import MailServicePage from './views/mail-service-page'
 import HelpPage from './views/help-page'
 import NotFoundPage from './views/not-found-page'
 import './style.css'
@@ -101,6 +103,16 @@ export default new Router({
       name: 'CompletionPage',
       path: '/completion',
       component: CompletionPage,
+    },
+    {
+      name: 'ReportsPage',
+      path: '/reports',
+      component: ReportsPage,
+    },
+    {
+      name: 'MailServicePage',
+      path: '/mail-service',
+      component: MailServicePage,
     },
     {
       name: 'HelpPage',

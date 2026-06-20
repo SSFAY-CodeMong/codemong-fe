@@ -13,6 +13,7 @@
         <div class="setup-summary" v-if="project">
           <strong>{{ project.name }}</strong>
           <span>{{ project.description }}</span>
+          <span>{{ maxStep }} steps</span>
         </div>
       </section>
 
@@ -78,6 +79,9 @@ export default {
     }
   },
   computed: {
+    maxStep() {
+      return this.project && (this.project.maxStep || this.project.steps) || this.steps.length || 5
+    },
     track() {
       return (this.project && this.project.type) || 'BE'
     },
