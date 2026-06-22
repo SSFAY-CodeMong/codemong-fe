@@ -33,7 +33,7 @@ export function clearSession() {
 }
 
 async function request(path, options = {}) {
-  const { auth = false, ...fetchOptions } = options
+  const { auth = false, isRetry = false, ...fetchOptions } = options
   if (auth && !getToken()) {
     try {
       await reissueToken()
@@ -69,8 +69,27 @@ async function request(path, options = {}) {
   } catch (error) {
     throw new Error('API가 JSON이 아닌 응답을 반환했습니다. 로그인 상태를 확인하세요.')
   }
+
   if (!response.ok) {
     const message = data && (data.message || data.error || data.errorCode)
+    
+    // access token 만료 감지 (401 Unauthorized 상태코드 또는 에러메시지에 EXPIRED_TOKEN 등이 포함된 경우)
+    const isTokenExpired = response.status === 401 || (message && (
+      String(message).includes('EXPIRED_TOKEN') || 
+      String(message).includes('expired') || 
+      String(message).includes('Expired')
+    ))
+
+    if (isTokenExpired && !isRetry && path !== '/auth/reissue') {
+      try {
+        await reissueToken()
+        return await request(path, { ...options, isRetry: true })
+      } catch (reissueError) {
+        clearSession()
+        throw new Error('세션이 만료되었습니다. 다시 로그인해주세요.')
+      }
+    }
+
     throw new Error(message || `HTTP ${response.status}`)
   }
   return data
@@ -114,7 +133,7 @@ export async function startProject(projectId, payload) {
 export const getLearningRepositories = () => request('/github/learning-repositories', { auth: true })
 export const getRepositoryStatus = repositoryId => request(`/github/repositories/${repositoryId}/status`, { auth: true })
 export const getRepositoryCompleted = repositoryId => request(`/github/repositories/${repositoryId}/completed`, { auth: true })
-export const getRepositoryReports = repositoryId => request(`/reports/repositories/${repositoryId}`, { auth: true })
+export const getRepositoryReports = repositoryId => request(`/reports/list`, { auth: true })
 export const deleteLearningRepository = repositoryId =>
   request(`/github/repositories/${repositoryId}`, { auth: true, method: 'DELETE' })
 

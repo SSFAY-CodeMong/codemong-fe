@@ -27,6 +27,15 @@ export default {
   data() {
     return { message: '' }
   },
+  async created() {
+    // 소셜 로그인 완료 후 리다이렉트되거나 로그인 페이지 진입 시 자동으로 세션 연동 시도
+    try {
+      await reissueToken()
+      this.$router.push('/projects')
+    } catch (error) {
+      // 비로그인 상태인 경우 에러 무시하고 로그인 버튼 활성화 유지
+    }
+  },
   methods: {
     loginWithGithub,
     async refresh() {
