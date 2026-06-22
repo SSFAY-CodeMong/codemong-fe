@@ -14,11 +14,6 @@ module.exports = {
     },
   },
   chainWebpack: config => {
-    config.plugin('define').tap(definitions => {
-      definitions[0]['process.env'].VITE_API_BASE_URL = JSON.stringify(process.env.VITE_API_BASE_URL)
-      return definitions
-    })
-
     config.plugin('copy').tap(args => {
       const UNESCAPED_GLOB_SYMBOLS_RE = /(\\?)([()*?[\]{|}]|^!|[!+@](?=\())/g;
       const publicDir = path.resolve(process.VUE_CLI_SERVICE.context, 'public').replace(/\\/g, '/');

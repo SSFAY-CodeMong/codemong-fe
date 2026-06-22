@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.VITE_API_BASE_URL || 'http://localhost:8080'
+const API_BASE_URL = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
 const TOKEN_KEY = 'codemong_access_token'
 const PROJECT_KEY = 'codemong_selected_project'
 const REPOSITORY_KEY = 'codemong_repository'
