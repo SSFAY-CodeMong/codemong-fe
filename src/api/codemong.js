@@ -48,7 +48,7 @@ async function request(path, options = {}) {
     ...(fetchOptions.headers || {}),
   }
   const token = getToken()
-  if (token) headers.Authorization = `Bearer ${token}`
+  if (token && path !== '/auth/reissue') headers.Authorization = `Bearer ${token}`
 
   let response
   try {
@@ -82,8 +82,15 @@ async function request(path, options = {}) {
 
     if (isTokenExpired && !isRetry && path !== '/auth/reissue') {
       try {
-        await reissueToken()
-        return await request(path, { ...options, isRetry: true })
+        const newAccessToken = await reissueToken()
+        const nextOptions = { ...options, isRetry: true }
+        if (nextOptions.headers) {
+          nextOptions.headers = {
+            ...nextOptions.headers,
+            Authorization: `Bearer ${newAccessToken}`,
+          }
+        }
+        return await request(path, nextOptions)
       } catch (reissueError) {
         clearSession()
         throw new Error('세션이 만료되었습니다. 다시 로그인해주세요.')
