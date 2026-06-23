@@ -1,7 +1,7 @@
 <template>
   <footer class="app-footer">
-    <strong>Codemong</strong>
-    <span>GitHub 저장소 기반 프로젝트 학습 도구</span>
+    <strong>CodeMong</strong>
+    <span>GitHub Repository 기반 AI 코드 리뷰 플랫폼</span>
   </footer>
 </template>
 

@@ -1,10 +1,11 @@
 <template>
   <div class="app-shell">
     <AppHeader active-page="mission" />
-    <main class="page layout">
-      <section class="panel">
+    <main class="page layout ai-question-page">
+      <section class="panel ai-question-panel">
+        <span class="badge">AI Code Review Chat</span>
         <h1>코드 질문</h1>
-        <p>LLM 응답 API가 연결되어 있으면 현재 저장소 코드 맥락으로 질문할 수 있습니다.</p>
+        <p>현재 저장소 코드 맥락을 바탕으로 수정 방향과 개선 포인트를 질문할 수 있습니다.</p>
         <form class="form" @submit.prevent="ask">
           <label>
             질문
@@ -13,9 +14,11 @@
           <button class="primary" type="submit" :disabled="loading">질문하기</button>
         </form>
       </section>
-      <aside class="panel">
-        <h2>응답</h2>
-        <p>{{ answer || '아직 응답이 없습니다.' }}</p>
+      <aside class="panel ai-answer-panel">
+        <div class="chat-message chat-message--assistant">
+          <span class="chat-role">AI</span>
+          <div class="chat-bubble">{{ answer || '아직 응답이 없습니다. Repository 코드에 대해 궁금한 점을 질문하세요.' }}</div>
+        </div>
       </aside>
     </main>
     <AppFooter />

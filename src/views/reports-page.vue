@@ -4,8 +4,9 @@
     <main class="page reports-page">
       <section class="section-head">
         <div>
-          <span class="badge">Reports</span>
-          <h1>프로젝트 리포트</h1>
+          <span class="badge">AI Review Reports</span>
+          <h1>코드 리뷰 리포트</h1>
+          <p>완료된 Repository 검사 결과와 AI 개선 피드백을 한곳에서 확인합니다.</p>
         </div>
         <button class="secondary" type="button" @click="loadReports" :disabled="loading">
           {{ loading ? '불러오는 중' : '새로고침' }}
@@ -23,11 +24,14 @@
 
       <section v-else class="report-grid">
         <article v-for="report in reports" :key="report.id" class="report-card">
-          <div class="progress-card__top">
-            <strong>Report #{{ report.id }}</strong>
-            <span class="badge">{{ report.score }}점</span>
+          <div class="report-card__top">
+            <div>
+              <span class="badge">Review Report</span>
+              <strong>Report #{{ report.id }}</strong>
+            </div>
+            <span class="status ok">{{ report.score }}점</span>
           </div>
-          <p>{{ formatDate(report.createdAt) }}</p>
+          <p class="report-date">{{ formatDate(report.createdAt) }}</p>
           <div class="answer-box report-content">{{ report.content }}</div>
         </article>
       </section>
