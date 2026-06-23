@@ -13,15 +13,17 @@
       </button>
     </nav>
     <div class="header-actions">
-      <span v-if="user" class="user-chip">{{ user.name || user.email || 'GitHub User' }}</span>
-      <button v-if="user" class="secondary small" type="button" @click="logout">로그아웃</button>
-      <button v-else class="primary small" type="button" @click="$router.push('/login')">GitHub 로그인</button>
+      <template v-if="user">
+        <span class="user-chip">{{ user.name || user.email || 'GitHub User' }}</span>
+        <button class="secondary small" type="button" @click="logout">로그아웃</button>
+      </template>
+      <button v-else-if="checkedAuth" class="primary small" type="button" @click="$router.push('/login')">GitHub 로그인</button>
     </div>
   </header>
 </template>
 
 <script>
-import { clearSession, getMe, getNavigation, logout } from '../api/codemong'
+import { clearSession, getCachedUser, getMe, getNavigation, logout } from '../api/codemong'
 
 export default {
   name: 'AppHeader',
@@ -34,7 +36,8 @@ export default {
   data() {
     return {
       navigation: getNavigation(),
-      user: null,
+      user: getCachedUser(),
+      checkedAuth: Boolean(getCachedUser()),
     }
   },
   async created() {
@@ -42,6 +45,8 @@ export default {
       this.user = await getMe()
     } catch (error) {
       this.user = null
+    } finally {
+      this.checkedAuth = true
     }
   },
   methods: {

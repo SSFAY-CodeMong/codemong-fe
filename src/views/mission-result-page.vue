@@ -4,22 +4,9 @@
     <main class="page result-page">
       <section class="result-summary" :class="{ pass: passed, fail: !passed }">
         <span class="badge">{{ status }}</span>
-        <h1>{{ passed ? '요구사항을 통과했습니다' : '오류 원인을 확인하세요' }}</h1>
-        <p>{{ passed ? successMessage : failureMessage }}</p>
-        <div class="toolbar">
-          <button v-if="passed" class="primary" type="button" @click="$router.push(successRoute)">
-            {{ isLastStep ? '프로젝트 완료' : '다음 스텝 이동' }}
-          </button>
-          <button class="secondary" type="button" @click="$router.push('/mission-workspace')">
-            미션으로 돌아가기
-          </button>
-        </div>
-      </section>
-
-      <section class="result-grid result-grid--review">
-        <article class="panel result-panel-scroll">
+        <div class="result-summary__details">
           <h2>{{ passed ? '통과 요약' : '오류 원인' }}</h2>
-          <ul class="failed-test-list" v-if="failedTestItems.length">
+          <ul class="failed-test-list compact" v-if="failedTestItems.length">
             <li v-for="test in failedTestItems" :key="test.name" class="failed-test-item">
               <strong class="method-name">{{ test.methodName }}</strong>
               <span class="muted">{{ test.name }}</span>
@@ -27,18 +14,22 @@
             </li>
           </ul>
           <p v-else>{{ passed ? 'Hidden test가 성공적으로 종료되었습니다.' : failureMessage }}</p>
-        </article>
-
-        <article class="panel result-panel-scroll">
-          <h2>제출 코드 전체 피드백</h2>
-          <div class="answer-box result-feedback">
-            {{ reviewContent || '아직 생성된 전체 피드백이 없습니다.' }}
-          </div>
-        </article>
+        </div>
+        <div class="toolbar">
+          <button v-if="passed" class="primary" type="button" @click="$router.push(successRoute)">
+            {{ isLastStep ? '프로젝트 완료' : '다음 스텝 이동' }}
+          </button>
+          <button class="secondary" type="button" @click="$router.push('/mission-workspace')">
+            미션으로 돌아가기
+          </button>
+          <button class="secondary" type="button" @click="scrollToFeedback">
+            AI 피드백
+          </button>
+        </div>
       </section>
 
-      <section class="panel">
-        <h2>코드 질문</h2>
+      <section class="panel result-chat-panel" ref="feedbackPanel">
+        <h2>제출 코드 전체 피드백 및 코드 질문</h2>
         <p>현재 결과와 전체 피드백을 바탕으로 수정 방향을 질문할 수 있습니다.</p>
         <div class="chat-box" ref="chatBox">
           <div v-if="!messages.length && !asking" class="chat-empty">응답이 여기에 표시됩니다.</div>
@@ -49,7 +40,8 @@
             :class="`chat-message--${message.role}`"
           >
             <span class="chat-role">{{ message.role === 'user' ? '나' : 'AI' }}</span>
-            <div class="chat-bubble">{{ message.content }}</div>
+            <div v-if="message.role === 'assistant'" class="chat-bubble markdown-preview" v-html="renderMessage(message.content)"></div>
+            <div v-else class="chat-bubble">{{ message.content }}</div>
           </div>
           <div v-if="asking" class="chat-message chat-message--assistant">
             <span class="chat-role">AI</span>
@@ -66,6 +58,7 @@
             v-model="question"
             rows="5"
             placeholder="왜 실패했는지, 어떤 파일부터 보면 좋을지 질문하세요."
+            @keydown.enter.exact.prevent="ask"
           ></textarea>
           <button class="primary" type="submit" :disabled="asking || !question.trim()">질문 보내기</button>
         </form>
@@ -79,6 +72,7 @@
 import AppFooter from '../components/AppFooter.vue'
 import AppHeader from '../components/AppHeader.vue'
 import { askCodeQuestion, getSavedCheckResult, getSavedRepository } from '../api/codemong'
+import { renderMarkdown } from '../utils/markdown'
 
 export default {
   name: 'MissionResultPage',
@@ -98,6 +92,9 @@ export default {
       asking: false,
       nextMessageId: 1,
     }
+  },
+  created() {
+    this.seedReviewMessage()
   },
   computed: {
     status() {
@@ -147,6 +144,21 @@ export default {
       if (!testName) return ''
       const parts = String(testName).split('.')
       return parts[parts.length - 1]
+    },
+    renderMessage(content) {
+      return renderMarkdown(content || '아직 생성된 전체 피드백이 없습니다.')
+    },
+    seedReviewMessage() {
+      this.messages = [{
+        id: this.nextMessageId++,
+        role: 'assistant',
+        content: this.reviewContent || '아직 생성된 전체 피드백이 없습니다.',
+      }]
+    },
+    scrollToFeedback() {
+      const panel = this.$refs.feedbackPanel
+      if (!panel) return
+      panel.scrollIntoView({ behavior: 'smooth', block: 'start' })
     },
     async ask() {
       const question = this.question.trim()

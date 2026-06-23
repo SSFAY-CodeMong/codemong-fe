@@ -6,11 +6,18 @@ const CHECK_KEY = 'codemong_check_id'
 const CHECK_RESULT_KEY = 'codemong_check_result'
 const CHECK_REQUEST_KEY = 'codemong_check_request'
 const START_REQUEST_KEY = 'codemong_project_start_request'
+const LOGIN_REISSUE_PENDING_KEY = 'codemong_login_reissue_pending'
+const LOGGED_OUT_KEY = 'codemong_logged_out'
+
+let reissuePromise = null
+let currentUser = null
+let mePromise = null
 
 export const getNavigation = () => [
   { key: 'projects', label: '프로젝트', path: '/projects' },
   { key: 'mission', label: '미션', path: '/mission-workspace' },
   { key: 'progress', label: '진행 현황', path: '/mission-progress' },
+  { key: 'reports', label: '리포트', path: '/reports' },
   { key: 'mail', label: '메일서비스', path: '/mail-service/settings' },
   { key: 'help', label: '도움말', path: '/help' },
 ]
@@ -20,7 +27,10 @@ function getToken() {
 }
 
 export function setToken(token) {
-  if (token) window.localStorage.setItem(TOKEN_KEY, token)
+  if (token) {
+    window.localStorage.setItem(TOKEN_KEY, token)
+    clearLoggedOut()
+  }
 }
 
 export function clearSession() {
@@ -30,16 +40,26 @@ export function clearSession() {
   window.localStorage.removeItem(CHECK_RESULT_KEY)
   window.localStorage.removeItem(CHECK_REQUEST_KEY)
   window.localStorage.removeItem(START_REQUEST_KEY)
+  currentUser = null
+}
+
+function markLoggedOut() {
+  window.sessionStorage.setItem(LOGGED_OUT_KEY, 'true')
+  clearLoginRedirectReissue()
+}
+
+function clearLoggedOut() {
+  window.sessionStorage.removeItem(LOGGED_OUT_KEY)
+}
+
+function isLoggedOut() {
+  return window.sessionStorage.getItem(LOGGED_OUT_KEY) === 'true'
 }
 
 async function request(path, options = {}) {
   const { auth = false, isRetry = false, ...fetchOptions } = options
-  if (auth && !getToken()) {
-    try {
-      await reissueToken()
-    } catch (error) {
-      throw new Error('로그인이 필요합니다. GitHub 로그인 후 다시 시도하세요.')
-    }
+  if (auth && isLoggedOut()) {
+    throw new Error('로그인이 필요합니다.')
   }
 
   const headers = {
@@ -80,7 +100,7 @@ async function request(path, options = {}) {
       String(message).includes('Expired')
     ))
 
-    if (isTokenExpired && !isRetry && path !== '/auth/reissue') {
+    if (isTokenExpired && !isRetry && path !== '/auth/reissue' && !isLoggedOut()) {
       try {
         const newAccessToken = await reissueToken()
         const nextOptions = { ...options, isRetry: true }
@@ -93,6 +113,7 @@ async function request(path, options = {}) {
         return await request(path, nextOptions)
       } catch (reissueError) {
         clearSession()
+        redirectToLogin()
         throw new Error('세션이 만료되었습니다. 다시 로그인해주세요.')
       }
     }
@@ -103,13 +124,37 @@ async function request(path, options = {}) {
 }
 
 export async function reissueToken() {
-  const data = await request('/auth/reissue', { method: 'POST' })
-  setToken(data.accessToken)
-  return data.accessToken
+  if (!reissuePromise) {
+    reissuePromise = request('/auth/reissue', { method: 'POST' })
+      .then(data => {
+        setToken(data.accessToken)
+        return data.accessToken
+      })
+      .finally(() => {
+        reissuePromise = null
+      })
+  }
+  return reissuePromise
 }
 
 export function loginWithGithub() {
+  clearLoggedOut()
+  window.sessionStorage.setItem(LOGIN_REISSUE_PENDING_KEY, 'true')
   window.location.href = `${API_BASE_URL}/oauth2/authorization/github`
+}
+
+export function shouldReissueAfterLoginRedirect() {
+  return window.sessionStorage.getItem(LOGIN_REISSUE_PENDING_KEY) === 'true'
+}
+
+export function clearLoginRedirectReissue() {
+  window.sessionStorage.removeItem(LOGIN_REISSUE_PENDING_KEY)
+}
+
+function redirectToLogin() {
+  if (window.location.pathname !== '/login') {
+    window.location.href = '/login'
+  }
 }
 
 export async function logout() {
@@ -117,10 +162,32 @@ export async function logout() {
     await request('/auth/logout', { auth: true, method: 'POST' })
   } finally {
     clearSession()
+    markLoggedOut()
   }
 }
 
-export const getMe = () => request('/users/me', { auth: true })
+export function getCachedUser() {
+  return currentUser
+}
+
+export function setCachedUser(user) {
+  currentUser = user
+}
+
+export function getMe() {
+  if (currentUser) return Promise.resolve(currentUser)
+  if (!mePromise) {
+    mePromise = request('/users/me', { auth: true })
+      .then(user => {
+        currentUser = user
+        return user
+      })
+      .finally(() => {
+        mePromise = null
+      })
+  }
+  return mePromise
+}
 export const getProjects = () => request('/projects')
 export const getProject = projectId => request(`/projects/${projectId}`)
 export const getProjectSteps = projectId => request(`/projects/${projectId}/steps`)
