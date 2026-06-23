@@ -2,7 +2,8 @@
   <div class="app-shell">
     <AppHeader active-page="mission" />
     <main class="page inspection-page">
-      <section class="inspection-panel">
+      <CodeMongLoading v-if="status === 'RUNNING'" />
+      <section v-else class="inspection-panel">
         <div class="scan-visual" :class="{ done: passed, failed }">
           <div class="scan-ring"></div>
           <div class="scan-core">{{ status }}</div>
@@ -69,12 +70,13 @@
 <script>
 import AppFooter from '../components/AppFooter.vue'
 import AppHeader from '../components/AppHeader.vue'
+import CodeMongLoading from '../components/CodeMongLoading.vue'
 import { getCodeReviewRequest, reviewCode, saveCheckResult } from '../api/codemong'
 import { renderMarkdown } from '../utils/markdown'
 
 export default {
   name: 'InspectionRunningPage',
-  components: { AppFooter, AppHeader },
+  components: { AppFooter, AppHeader, CodeMongLoading },
   data() {
     return {
       request: getCodeReviewRequest(),
