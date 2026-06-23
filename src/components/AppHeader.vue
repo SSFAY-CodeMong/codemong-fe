@@ -23,7 +23,7 @@
 </template>
 
 <script>
-import { clearSession, getCachedUser, getMe, getNavigation, logout } from '../api/codemong'
+import { clearSession, getCachedUser, getMe, getNavigation, hasAccessToken, logout } from '../api/codemong'
 
 export default {
   name: 'AppHeader',
@@ -34,13 +34,20 @@ export default {
     },
   },
   data() {
+    const cachedUser = getCachedUser()
     return {
       navigation: getNavigation(),
-      user: getCachedUser(),
-      checkedAuth: Boolean(getCachedUser()),
+      user: cachedUser,
+      checkedAuth: Boolean(cachedUser) || !hasAccessToken(),
     }
   },
   async created() {
+    if (!hasAccessToken()) {
+      this.user = null
+      this.checkedAuth = true
+      return
+    }
+
     try {
       this.user = await getMe()
     } catch (error) {

@@ -184,11 +184,7 @@ export default {
       this.asking = true
       this.scrollChatToBottom()
       try {
-        const history = this.messages
-          .map(message => `${message.role === 'user' ? '사용자' : 'AI'}: ${message.content}`)
-          .join('\n\n')
-        const context = `${question}\n\n[이전 대화]\n${history}\n\n검사 상태: ${this.status}\n실패 원인: ${this.failureMessage}\n\n전체 피드백\n${this.reviewContent}`
-        const result = await askCodeQuestion(repository.repositoryId, context)
+        const result = await askCodeQuestion(repository.repositoryId, question)
         this.messages.push({
           id: this.nextMessageId++,
           role: 'assistant',

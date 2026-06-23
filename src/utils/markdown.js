@@ -12,10 +12,93 @@ function renderInline(value) {
     .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>')
 }
 
+function isMarkdownLine(line) {
+  const trimmed = line.trim()
+  return !trimmed ||
+    trimmed.startsWith('```') ||
+    trimmed === '<details>' ||
+    trimmed === '</details>' ||
+    /^<summary>.*<\/summary>$/.test(trimmed) ||
+    /^#{1,6}\s+/.test(trimmed) ||
+    /^[-*]\s+/.test(trimmed) ||
+    /^\d+\.\s+/.test(trimmed)
+}
+
+function isCodeLikeLine(line) {
+  const trimmed = line.trim()
+  if (!trimmed || isMarkdownLine(line)) return false
+
+  if (/^\s{2,}\S/.test(line)) return true
+  if (/^(import|export|package|class|interface|enum|public|private|protected|static|fun|function|const|let|var|return|if|else|for|while|switch|case|try|catch|finally|throw|new|def|from|SELECT|INSERT|UPDATE|DELETE)\b/.test(trimmed)) return true
+  if (/^(@\w+|\/\/|\/\*|\*\/|#include\b|#[a-z]+\b)/.test(trimmed)) return true
+  if (/<\/?[A-Za-z][^>]*>/.test(trimmed)) return true
+  if (/[{};]$/.test(trimmed)) return true
+  if (/(=>|===|!==|==|!=|<=|>=|\+\+|--)/.test(trimmed)) return true
+  if (/^[A-Za-z_$][\w$]*(\.[\w$]+)*\s*[:=]\s*['"`[{(0-9]/.test(trimmed)) return true
+  if (/^[A-Za-z_$][\w$]*(\.[\w$]+)*\([^)]*\)\s*[{:;]/.test(trimmed)) return true
+
+  return false
+}
+
+function shouldFenceCodeCandidate(lines) {
+  const nonEmptyLines = lines.filter(line => line.trim())
+  if (nonEmptyLines.length < 2) return false
+
+  const codeLineCount = nonEmptyLines.filter(isCodeLikeLine).length
+  if (codeLineCount >= 2) return true
+
+  return nonEmptyLines.some(line => /^\s{2,}\S/.test(line))
+}
+
+function autoFenceCodeBlocks(markdown) {
+  const lines = String(markdown).replace(/\r\n/g, '\n').split('\n')
+  const result = []
+  let candidate = []
+  let inFence = false
+
+  const flushCandidate = () => {
+    if (!candidate.length) return
+
+    if (shouldFenceCodeCandidate(candidate)) {
+      result.push('```', ...candidate, '```')
+    } else {
+      result.push(...candidate)
+    }
+    candidate = []
+  }
+
+  lines.forEach((line) => {
+    const trimmed = line.trim()
+
+    if (trimmed.startsWith('```')) {
+      flushCandidate()
+      inFence = !inFence
+      result.push(line)
+      return
+    }
+
+    if (inFence) {
+      result.push(line)
+      return
+    }
+
+    if (isCodeLikeLine(line) || (candidate.length && !trimmed)) {
+      candidate.push(line)
+      return
+    }
+
+    flushCandidate()
+    result.push(line)
+  })
+
+  flushCandidate()
+  return result.join('\n')
+}
+
 export function renderMarkdown(markdown) {
   if (!markdown) return ''
 
-  const lines = String(markdown).replace(/\r\n/g, '\n').split('\n')
+  const lines = autoFenceCodeBlocks(markdown).split('\n')
   const html = []
   let inCode = false
   let codeLines = []
