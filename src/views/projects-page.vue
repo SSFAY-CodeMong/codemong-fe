@@ -7,7 +7,7 @@
         <div>
           <span class="badge">Project Catalog</span>
           <h1>실전 프로젝트로 스텝을 열어가세요</h1>
-          <p>starter 코드, GitHub 브랜치, Actions 검사를 하나의 학습 흐름으로 묶었습니다.</p>
+          <p>starter 코드, GitHub 브랜치, AI 기반 피드백을 하나의 학습 흐름으로 묶었습니다.</p>
         </div>
       </section>
 
@@ -25,7 +25,7 @@
             <div>
               <span class="badge">{{ project.category }}</span>
               <h2>{{ project.title || project.name }}</h2>
-              <p>{{ project.description }}</p>
+              <p v-html="formatProjectDescription(project.description)"></p>
               <div class="project-meta">
                 <span>{{ maxStep(project) }} steps</span>
                 <span>{{ project.difficulty }}</span>
@@ -38,7 +38,7 @@
         <aside class="project-detail-rich" v-if="selected">
           <span class="badge">{{ selected.category }}</span>
           <h2>{{ selected.title || selected.name }}</h2>
-          <p>{{ selected.description }}</p>
+          <p v-html="formatProjectDescription(selected.description)"></p>
           <div class="detail-block">
             <h3>학습 목표</h3>
             <ul class="check-list detail-check-list">
@@ -63,6 +63,7 @@
 import AppFooter from '../components/AppFooter.vue'
 import AppHeader from '../components/AppHeader.vue'
 import { getProjects, saveSelectedProject } from '../api/codemong'
+import { escapeHtml } from '../utils/markdown'
 
 export default {
   name: 'ProjectsPage',
@@ -90,6 +91,9 @@ export default {
     },
     maxStep(project) {
       return project.maxStep || project.steps || 5
+    },
+    formatProjectDescription(description) {
+      return escapeHtml(description || '').replace(/백엔드\s+프로젝트/g, '백엔드<br>프로젝트')
     },
     goSetup() {
       saveSelectedProject(this.selected)

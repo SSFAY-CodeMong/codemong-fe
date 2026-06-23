@@ -54,9 +54,10 @@
 
           <article class="inspection-card inspection-card--review">
             <h3>제출 코드 전체 피드백</h3>
-            <div class="answer-box inspection-review-box">
-              {{ reviewContent || '아직 생성된 전체 피드백이 없습니다.' }}
-            </div>
+            <div
+              class="answer-box markdown-preview inspection-review-box"
+              v-html="renderFeedback(reviewContent)"
+            ></div>
           </article>
         </div>
       </section>
@@ -69,6 +70,7 @@
 import AppFooter from '../components/AppFooter.vue'
 import AppHeader from '../components/AppHeader.vue'
 import { getCodeReviewRequest, reviewCode, saveCheckResult } from '../api/codemong'
+import { renderMarkdown } from '../utils/markdown'
 
 export default {
   name: 'InspectionRunningPage',
@@ -146,6 +148,9 @@ export default {
       if (!testName) return ''
       const parts = String(testName).replace(/\(.*\)$/, '').split('.')
       return parts[parts.length - 1]
+    },
+    renderFeedback(content) {
+      return renderMarkdown(content || '아직 생성된 전체 피드백이 없습니다.')
     },
     async runReview() {
       this.status = 'RUNNING'

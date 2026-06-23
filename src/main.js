@@ -2,7 +2,11 @@ import Vue from 'vue'
 import App from './App.vue'
 import router from './router'
 import LottieVuePlayer from '@lottiefiles/vue-lottie-player'
-import { reissueToken } from './api/codemong'
+import {
+  clearLoginRedirectReissue,
+  reissueToken,
+  shouldReissueAfterLoginRedirect,
+} from './api/codemong'
 import './style.css'
 
 Vue.use(LottieVuePlayer)
@@ -15,10 +19,22 @@ const initApp = () => {
   }).$mount('#app')
 }
 
-reissueToken()
-  .catch(() => {
-    // Fail silently if not logged in (no refreshToken cookie)
-  })
-  .finally(() => {
+const initAfterLoginRedirect = async () => {
+  try {
+    await reissueToken()
+    if (window.location.pathname === '/login') {
+      router.replace('/projects')
+    }
+  } catch (error) {
+    // Keep the user on the current page if the refreshToken cookie is missing or expired.
+  } finally {
+    clearLoginRedirectReissue()
     initApp()
-  })
+  }
+}
+
+if (shouldReissueAfterLoginRedirect()) {
+  initAfterLoginRedirect()
+} else {
+  initApp()
+}

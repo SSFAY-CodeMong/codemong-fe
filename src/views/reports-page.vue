@@ -1,12 +1,11 @@
 <template>
   <div class="app-shell">
-    <AppHeader active-page="progress" />
+    <AppHeader active-page="reports" />
     <main class="page reports-page">
       <section class="section-head">
         <div>
           <span class="badge">Reports</span>
           <h1>프로젝트 리포트</h1>
-          <p>리포트 생성 로직이 연결되면 이곳에 항목별 리포트가 표시됩니다.</p>
         </div>
         <button class="secondary" type="button" @click="loadReports" :disabled="loading">
           {{ loading ? '불러오는 중' : '새로고침' }}
@@ -19,7 +18,7 @@
 
       <section v-else-if="!reports.length" class="empty-state report-empty">
         <h2>아직 생성된 리포트가 없습니다</h2>
-        <p>현재는 조회 API 연결 틀만 준비되어 있습니다. 리포트 생성 로직이 추가되면 자동으로 목록에 표시됩니다.</p>
+        <p>프로젝트의 최종 스탭을 완료하면 이곳에 리포트가 표시됩니다.</p>
       </section>
 
       <section v-else class="report-grid">
