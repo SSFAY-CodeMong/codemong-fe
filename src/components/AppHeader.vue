@@ -1,6 +1,9 @@
 <template>
   <header class="app-header">
-    <button class="brand" type="button" @click="$router.push('/')">Codemong</button>
+    <button class="brand" type="button" @click="$router.push('/')">
+      <img class="brand-logo" src="/CodeMong_logo.png" alt="CodeMong" />
+      <span class="brand-name">CodeMong</span>
+    </button>
     <nav>
       <button
         v-for="item in navigation"

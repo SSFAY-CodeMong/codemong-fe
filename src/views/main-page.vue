@@ -4,32 +4,33 @@
     <main class="home-page">
       <section class="home-hero">
         <div class="home-hero__copy">
-          <span class="badge">GitHub Actions 기반 미션 러너</span>
-          <h1>Codemong</h1>
+          <span class="badge">AI 코드 리뷰 서비스</span>
+          <h1>CodeMong</h1>
           <p>
-            프로젝트를 고르면 학습 저장소와 브랜치를 만들고, 요구사항을 구현한 뒤 검사 결과로 다음 스텝을 여는 실습 환경입니다.
+            GitHub Repository를 선택하고 코드를 검사하면 Spring Boot 백엔드와 RAG 기반 AI가 코드 리뷰,
+            실패 원인, 개선 피드백을 하나의 리포트로 정리합니다.
           </p>
           <div class="toolbar">
-            <button class="primary" type="button" @click="$router.push('/projects')">프로젝트 시작</button>
-            <button class="secondary" type="button" @click="$router.push('/mission-progress')">진행 현황</button>
+            <button class="primary" type="button" @click="$router.push('/projects')">Repository 검사 시작</button>
+            <button class="secondary" type="button" @click="$router.push('/reports')">리뷰 리포트 보기</button>
           </div>
         </div>
         <div class="bubble-stage" aria-hidden="true">
           <div class="bubble bubble--repo">
             <strong>Repository</strong>
-            <span>codemong-mmcafe-0</span>
+            <span>codemong-service-api</span>
           </div>
           <div class="bubble bubble--branch">
-            <strong>Branch</strong>
-            <span>mmcafe-step01</span>
+            <strong>Spring Review</strong>
+            <span>Controller · Service · Repository</span>
           </div>
           <div class="bubble bubble--check">
-            <strong>Check</strong>
-            <span>GitHub Actions RUNNING</span>
+            <strong>AI Review</strong>
+            <span>RAG context matched</span>
           </div>
           <div class="bubble bubble--pass">
-            <strong>Next Step</strong>
-            <span>step02 unlocked</span>
+            <strong>Quality Score</strong>
+            <span>92 / 100</span>
           </div>
         </div>
       </section>
@@ -37,18 +38,18 @@
       <section class="page home-grid">
         <article class="card">
           <span class="badge">01</span>
-          <h2>프로젝트 선택</h2>
-          <p>백엔드/프론트 타입과 시작 스텝을 확인하고 GitHub 저장소 생성을 요청합니다.</p>
+          <h2>Repository 선택</h2>
+          <p>검사할 프로젝트와 트랙을 고르고 GitHub 저장소 기반 분석 흐름을 시작합니다.</p>
         </article>
         <article class="card">
           <span class="badge">02</span>
-          <h2>미션 수행</h2>
-          <p>생성된 저장소에서 TODO와 spec을 확인하고 코드를 push합니다.</p>
+          <h2>자동 검사</h2>
+          <p>테스트 실행 결과와 코드 변경 맥락을 수집해 AI 리뷰에 필요한 근거를 구성합니다.</p>
         </article>
         <article class="card">
           <span class="badge">03</span>
-          <h2>검사와 진행</h2>
-          <p>검사 요청은 checkId로 비동기 처리되고, 통과한 브랜치만 다음 스텝으로 이동합니다.</p>
+          <h2>리뷰 리포트</h2>
+          <p>문제 원인, 개선 제안, 추가 질문 답변을 개발자가 읽기 쉬운 리포트로 제공합니다.</p>
         </article>
       </section>
     </main>
