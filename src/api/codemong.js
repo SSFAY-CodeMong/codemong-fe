@@ -211,7 +211,7 @@ export async function startProject(projectId, payload) {
 export const getLearningRepositories = () => request('/github/learning-repositories', { auth: true })
 export const getRepositoryStatus = repositoryId => request(`/github/repositories/${repositoryId}/status`, { auth: true })
 export const getRepositoryCompleted = repositoryId => request(`/github/repositories/${repositoryId}/completed`, { auth: true })
-export const getRepositoryReports = repositoryId => request(`/reports/list`, { auth: true })
+export const getRepositoryReports = () => request(`/reports/list`, { auth: true })
 export const deleteLearningRepository = repositoryId =>
   request(`/github/repositories/${repositoryId}`, { auth: true, method: 'DELETE' })
 

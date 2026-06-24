@@ -27,12 +27,28 @@
           <div class="report-card__top">
             <div>
               <span class="badge">Review Report</span>
-              <strong>Report #{{ report.id }}</strong>
+              <strong>{{ report.projectName || `Report #${report.id}` }}</strong>
+              <div class="report-meta">
+                <span>Report #{{ report.id }}</span>
+                <span>Repository #{{ report.repositoryId }}</span>
+              </div>
             </div>
             <span class="status ok">{{ report.score }}점</span>
           </div>
           <p class="report-date">{{ formatDate(report.createdAt) }}</p>
-          <div class="answer-box report-content">{{ report.content }}</div>
+          <div class="answer-box markdown-preview report-content" v-html="renderReportContent(report.content)"></div>
+
+          <div v-if="report.feedbackDetails && report.feedbackDetails.length" class="report-feedback-details">
+            <h3>Step별 최신 피드백</h3>
+            <article
+              v-for="detail in report.feedbackDetails"
+              :key="`${report.id}-${detail.step}`"
+              class="report-feedback-item"
+            >
+              <span class="badge">Step {{ detail.step }}</span>
+              <div class="markdown-preview report-feedback-content" v-html="renderReportContent(detail.content)"></div>
+            </article>
+          </div>
         </article>
       </section>
     </main>
@@ -43,7 +59,8 @@
 <script>
 import AppFooter from '../components/AppFooter.vue'
 import AppHeader from '../components/AppHeader.vue'
-import { getRepositoryReports, getSavedRepository } from '../api/codemong'
+import { getRepositoryReports } from '../api/codemong'
+import { renderMarkdown } from '../utils/markdown'
 
 export default {
   name: 'ReportsPage',
@@ -60,15 +77,11 @@ export default {
   },
   methods: {
     async loadReports() {
-      const repository = getSavedRepository()
-      if (!repository) {
-        this.message = '선택된 저장소가 없습니다.'
-        return
-      }
       this.loading = true
       this.message = ''
       try {
-        this.reports = await getRepositoryReports(repository.repositoryId)
+        const reports = await getRepositoryReports()
+        this.reports = Array.isArray(reports) ? reports : []
       } catch (error) {
         this.message = error.message
       } finally {
@@ -78,6 +91,9 @@ export default {
     formatDate(value) {
       if (!value) return ''
       return new Date(value).toLocaleString()
+    },
+    renderReportContent(content) {
+      return renderMarkdown(content || '')
     },
   },
 }
