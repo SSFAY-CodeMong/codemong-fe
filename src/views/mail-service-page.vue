@@ -4,9 +4,9 @@
     <main class="page mail-page">
       <section class="mail-hero">
         <div>
-          <span class="badge">DevDaily for Codemong</span>
-          <h1>메일서비스</h1>
-          <p>메일 설정, 문제 풀이, 콘텐츠 열람, 발송 로그를 하위 페이지로 나누어 관리합니다.</p>
+          <span class="badge">DailyMong for Codemong</span>
+          <h1>DailyMong</h1>
+          <p>1시간마다 도착하는 개발 문제와 콘텐츠를 설정하고 풀이 기록을 관리합니다.</p>
         </div>
         <div class="mail-status" :class="{ active: subscription.enabled }">
           <strong>{{ subscription.enabled ? '구독 중' : '구독 꺼짐' }}</strong>
@@ -31,7 +31,7 @@
           <div class="section-head">
             <div>
               <h2>발송 설정</h2>
-              <p>Spring Batch가 10분마다 활성 구독자에게 랜덤 질문을 발송합니다.</p>
+              <p>Spring Batch가 1시간마다 활성 구독자에게 랜덤 질문을 발송합니다.</p>
             </div>
           </div>
           <label class="toggle-row">
@@ -69,7 +69,7 @@
         <div class="section-head">
           <div>
             <h2>문제 풀기</h2>
-            <p>DevDaily의 답변 제출/AI 피드백 흐름을 Codemong 메일서비스에 붙였습니다.</p>
+            <p>DailyMong의 답변 제출/AI 피드백 흐름을 Codemong에 붙였습니다.</p>
           </div>
           <button class="secondary small" type="button" @click="loadQuestion">랜덤 문제</button>
         </div>
