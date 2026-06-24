@@ -18,7 +18,7 @@ export const getNavigation = () => [
   { key: 'mission', label: '미션', path: '/mission-workspace' },
   { key: 'progress', label: '진행 현황', path: '/mission-progress' },
   { key: 'reports', label: '리포트', path: '/reports' },
-  { key: 'mail', label: 'DailyMong', path: '/mail-service/settings' },
+  { key: 'mail', label: '데일리몽', path: '/mail-service/settings' },
   { key: 'help', label: '도움말', path: '/help' },
 ]
 
