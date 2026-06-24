@@ -9,7 +9,7 @@
         v-for="item in navigation"
         :key="item.key"
         type="button"
-        :class="{ active: item.key === activePage }"
+        :class="{ active: isActive(item) }"
         @click="$router.push(item.path)"
       >
         {{ item.label }}
@@ -60,6 +60,10 @@ export default {
     }
   },
   methods: {
+    isActive(item) {
+      if (this.activePage) return item.key === this.activePage
+      return this.$route.path === item.path || this.$route.path.startsWith(`${item.path}/`)
+    },
     async logout() {
       try {
         await logout()
