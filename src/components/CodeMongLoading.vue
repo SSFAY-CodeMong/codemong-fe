@@ -9,22 +9,16 @@
 
         <div class="mascot-frame">
           <img
-            class="mascot-image mascot-image--idle"
-            :src="logoSrc"
+            class="mascot-image"
+            :src="currentFrame"
             alt="CodeMong loading mascot"
           />
-          <img
-            class="mascot-image mascot-image--typing"
-            :src="typingSrc"
-            alt=""
-            aria-hidden="true"
-          />
-          <img
-            class="mascot-image mascot-image--thinking"
-            :src="thinkingSrc"
-            alt=""
-            aria-hidden="true"
-          />
+          <div class="typing-indicator" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <span class="terminal-cursor" aria-hidden="true"></span>
         </div>
       </div>
 
@@ -43,6 +37,14 @@
 </template>
 
 <script>
+const typingFrames = [
+  '/CodeMong_typing1.png',
+  '/CodeMong_typing2.png',
+  '/CodeMong_typing3.png',
+  '/CodeMong_typing4.png',
+  '/CodeMong_typing5.png',
+]
+
 export default {
   name: 'CodeMongLoading',
   props: {
@@ -55,15 +57,39 @@ export default {
       default: '테스트 결과와 코드 구조를 함께 살펴보는 중입니다...',
     },
   },
+  data() {
+    return {
+      typingFrames,
+      currentFrameIndex: 0,
+      frameTimer: null,
+    }
+  },
   computed: {
-    logoSrc() {
-      return `${process.env.BASE_URL}CodeMong_logo.png`
+    currentFrame() {
+      return this.typingFrames[this.currentFrameIndex]
     },
-    typingSrc() {
-      return `${process.env.BASE_URL}CodeMong_typing.png`
-    },
-    thinkingSrc() {
-      return `${process.env.BASE_URL}CodeMong_thinking.png`
+  },
+  mounted() {
+    this.preloadFrames()
+
+    const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReducedMotion) return
+
+    this.frameTimer = window.setInterval(() => {
+      this.currentFrameIndex = (this.currentFrameIndex + 1) % this.typingFrames.length
+    }, 140)
+  },
+  beforeDestroy() {
+    if (this.frameTimer) {
+      window.clearInterval(this.frameTimer)
+    }
+  },
+  methods: {
+    preloadFrames() {
+      this.typingFrames.forEach(src => {
+        const image = new Image()
+        image.src = src
+      })
     },
   },
 }
@@ -119,35 +145,62 @@ export default {
   z-index: 2;
   width: min(100%, 360px);
   aspect-ratio: 1;
+  overflow: hidden;
   filter: drop-shadow(0 24px 34px rgba(16, 32, 21, 0.16));
 }
 
 .mascot-image {
-  position: absolute;
-  inset: 0;
   width: 100%;
   height: 100%;
   display: block;
   object-fit: contain;
   object-position: center;
-  opacity: 0;
-  transform-origin: 50% 72%;
-  will-change: opacity, transform;
-  animation-duration: 6.4s;
-  animation-timing-function: ease-in-out;
-  animation-iteration-count: infinite;
+  opacity: 1;
+  transition: opacity 0.1s linear;
 }
 
-.mascot-image--idle {
-  animation-name: idleFrame;
+.typing-indicator {
+  position: absolute;
+  left: 50%;
+  bottom: 17%;
+  z-index: 3;
+  display: inline-flex;
+  gap: 5px;
+  transform: translateX(-50%);
+  padding: 5px 7px;
+  border: 1px solid rgba(154, 231, 125, 0.3);
+  border-radius: 999px;
+  background: rgba(16, 32, 21, 0.72);
+  pointer-events: none;
 }
 
-.mascot-image--typing {
-  animation-name: typingFrame;
+.typing-indicator span {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--cm-primary, #9ae77d);
+  animation: typingDot 0.9s ease-in-out infinite;
 }
 
-.mascot-image--thinking {
-  animation-name: thinkingFrame;
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.24s;
+}
+
+.terminal-cursor {
+  position: absolute;
+  right: 29%;
+  bottom: 18%;
+  z-index: 3;
+  width: 16px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--cm-primary, #9ae77d);
+  animation: cursorBlink 0.8s steps(2, end) infinite;
+  pointer-events: none;
 }
 
 .code-symbol {
@@ -156,36 +209,32 @@ export default {
   color: var(--cm-primary-dark, #6db33f);
   font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
   font-weight: 900;
-  opacity: 0.28;
+  opacity: 0.24;
   pointer-events: none;
-  animation: symbolFloat 5.8s ease-in-out infinite;
 }
 
 .code-symbol--left {
   left: 0;
   top: 38%;
-  font-size: 36px;
+  font-size: 34px;
 }
 
 .code-symbol--right {
   right: 0;
   top: 38%;
-  font-size: 28px;
-  animation-delay: -1.1s;
+  font-size: 26px;
 }
 
 .code-symbol--top {
   right: 15%;
   top: 4%;
   font-size: 20px;
-  animation-delay: -2.4s;
 }
 
 .code-symbol--bottom {
   left: 17%;
   bottom: 7%;
   font-size: 24px;
-  animation-delay: -3.2s;
 }
 
 .codemong-loading__content {
@@ -237,88 +286,24 @@ export default {
   animation-delay: 0.32s;
 }
 
-@keyframes idleFrame {
-  0%,
-  12% {
-    opacity: 1;
-    transform: translateY(0) scale(1) rotate(0deg);
-  }
-  7% {
-    opacity: 1;
-    transform: translateY(-2px) scale(1.012) rotate(0deg);
-  }
-  18%,
-  78% {
-    opacity: 0;
-    transform: translateY(4px) scale(0.985) rotate(0deg);
-  }
-  88%,
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1) rotate(0deg);
-  }
-  94% {
-    opacity: 1;
-    transform: translateY(-2px) scale(1.01) rotate(-0.6deg);
-  }
-}
-
-@keyframes typingFrame {
-  0%,
-  12%,
-  78%,
-  100% {
-    opacity: 0;
-    transform: translateY(6px) scale(0.988) rotate(0deg);
-  }
-  20%,
-  60% {
-    opacity: 1;
-    transform: translateY(0) scale(1) rotate(0deg);
-  }
-  28%,
-  42%,
-  56% {
-    opacity: 1;
-    transform: translateY(-5px) scale(1.006) rotate(-0.45deg);
-  }
-  35%,
-  49% {
-    opacity: 1;
-    transform: translateY(2px) scale(0.998) rotate(0.35deg);
-  }
-  68% {
-    opacity: 0;
-    transform: translateY(3px) scale(0.99) rotate(0deg);
-  }
-}
-
-@keyframes thinkingFrame {
-  0%,
-  60%,
-  88%,
-  100% {
-    opacity: 0;
-    transform: translateY(5px) scale(0.99) rotate(0deg);
-  }
-  68%,
-  82% {
-    opacity: 1;
-    transform: translateY(0) scale(1) rotate(1.8deg);
-  }
-  75% {
-    opacity: 1;
-    transform: translateY(-2px) scale(1.004) rotate(-1.2deg);
-  }
-}
-
-@keyframes symbolFloat {
+@keyframes typingDot {
   0%,
   100% {
-    transform: translateY(0) rotate(0deg);
+    opacity: 0.35;
   }
   50% {
-    transform: translateY(-12px) rotate(4deg);
+    opacity: 1;
+  }
+}
+
+@keyframes cursorBlink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  46%,
+  100% {
+    opacity: 0;
   }
 }
 
@@ -365,21 +350,11 @@ export default {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mascot-image,
-  .code-symbol,
+  .typing-indicator span,
+  .terminal-cursor,
   .loading-dots span {
     animation-duration: 0.01ms;
     animation-iteration-count: 1;
-  }
-
-  .mascot-image--idle {
-    opacity: 1;
-    transform: none;
-  }
-
-  .mascot-image--typing,
-  .mascot-image--thinking {
-    opacity: 0;
   }
 }
 </style>
