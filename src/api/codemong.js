@@ -234,6 +234,7 @@ export const updateUserEmail = email =>
   })
 
 export const getProjects = () => request('/projects')
+export const getProjectPreferenceCards = () => request('/projects/preference-cards', { errorRedirect: false })
 export const getProject = projectId => request(`/projects/${projectId}`)
 export const getProjectSteps = projectId => request(`/projects/${projectId}/steps`)
 export const getStepSpec = (projectId, step) => request(`/projects/${projectId}/steps/${step}/spec`)
