@@ -48,7 +48,7 @@
           <div class="detail-block">
             <h3>기술 스택</h3>
             <div class="tag-row detail-tag-row">
-              <span v-for="stack in selected.stacks" :key="stack">{{ stack }}</span>
+              <span v-for="stack in projectStacks(selected)" :key="stack">{{ stack }}</span>
             </div>
           </div>
           <button class="primary" type="button" @click="goSetup">시작 스텝 선택</button>
@@ -64,6 +64,13 @@ import AppFooter from '../components/AppFooter.vue'
 import AppHeader from '../components/AppHeader.vue'
 import { getProjects, saveSelectedProject } from '../api/codemong'
 import { escapeHtml } from '../utils/markdown'
+
+const PROJECT_STACKS = {
+  jpa: ['Spring Boot', 'JPA'],
+  'security-lab': ['Spring Boot', 'Spring Security'],
+  market: ['Spring Boot', 'JPA', 'CRUD', 'MultiMedia'],
+  mmcafe: ['Spring Boot', 'JPA', 'CRUD'],
+}
 
 export default {
   name: 'ProjectsPage',
@@ -94,6 +101,22 @@ export default {
     },
     formatProjectDescription(description) {
       return escapeHtml(description || '').replace(/백엔드\s+프로젝트/g, '백엔드<br>프로젝트')
+    },
+    projectStacks(project) {
+      if (!project) return []
+      const candidates = [
+        project.type,
+        project.name,
+        project.title,
+        project.key,
+        project.slug,
+      ].filter(Boolean).map(value => String(value).toLowerCase())
+
+      const matchedKey = Object.keys(PROJECT_STACKS).find(key => {
+        return candidates.some(value => value === key || value.includes(key))
+      })
+
+      return matchedKey ? PROJECT_STACKS[matchedKey] : project.stacks || []
     },
     goSetup() {
       saveSelectedProject(this.selected)

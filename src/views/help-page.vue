@@ -11,7 +11,7 @@
         <div class="help-search">
           <label>
             문서 검색
-            <input v-model="query" type="search" placeholder="예: CORS, 테스트 실패, JPA lazy" />
+            <input v-model="query" type="search" placeholder="예: 프로젝트, 검사, 리포트" />
           </label>
         </div>
       </section>
