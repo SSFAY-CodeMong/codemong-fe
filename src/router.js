@@ -21,6 +21,8 @@ import ReportsPage from './views/reports-page'
 import ProfilePage from './views/profile-page'
 import MailServicePage from './views/mail-service-page'
 import HelpPage from './views/help-page'
+import AdminPage from './views/admin-page'
+import ServerErrorPage from './views/server-error-page'
 import NotFoundPage from './views/not-found-page'
 import './style.css'
 
@@ -147,6 +149,21 @@ export default new Router({
       name: 'HelpPage',
       path: '/help',
       component: HelpPage,
+    },
+    {
+      name: 'AdminPage',
+      path: '/admin',
+      component: AdminPage,
+    },
+    {
+      name: '500 - Server Error',
+      path: '/500',
+      component: ServerErrorPage,
+    },
+    {
+      name: '404 - Not Found Page',
+      path: '/404',
+      component: NotFoundPage,
     },
     {
       name: '404 - Not Found',
