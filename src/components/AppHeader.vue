@@ -18,7 +18,13 @@
     <div class="header-actions">
       <template v-if="user">
         <button class="user-chip" type="button" @click="$router.push('/profile')">
-          {{ user.name || user.email || 'GitHub User' }}
+          <img
+            class="user-chip__avatar"
+            :src="userAvatarSrc"
+            alt="사용자 프로필 이미지"
+            @error="useDefaultAvatar"
+          />
+          <span>{{ user.name || user.email || 'GitHub User' }}</span>
         </button>
         <button class="secondary small" type="button" @click="logout">로그아웃</button>
       </template>
@@ -61,6 +67,11 @@ export default {
       this.checkedAuth = true
     }
   },
+  computed: {
+    userAvatarSrc() {
+      return this.user && this.user.profilePath ? this.user.profilePath : '/CodeMong_logo.png'
+    },
+  },
   mounted() {
     window.addEventListener('codemong:user-updated', this.handleUserUpdated)
   },
@@ -74,6 +85,10 @@ export default {
     isActive(item) {
       if (this.activePage) return item.key === this.activePage
       return this.$route.path === item.path || this.$route.path.startsWith(`${item.path}/`)
+    },
+    useDefaultAvatar(event) {
+      if (event.target.src.endsWith('/CodeMong_logo.png')) return
+      event.target.src = '/CodeMong_logo.png'
     },
     async logout() {
       try {

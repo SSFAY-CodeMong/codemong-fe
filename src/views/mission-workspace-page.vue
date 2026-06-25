@@ -6,27 +6,61 @@
         <div class="section-head no-wrap-head">
           <div>
             <span class="badge">My Missions</span>
-            <h1>진행 중인 프로젝트</h1>
+            <h1>내 미션 프로젝트</h1>
           </div>
           <button class="secondary small nowrap" type="button" @click="loadRepositories">새로고침</button>
         </div>
         <p v-if="message" class="status fail">{{ message }}</p>
-        <article
-          v-for="repo in repositories"
-          :key="repo.repositoryId"
-          class="mission-repo-card fx-hover"
-          :class="{ selected: selected && selected.repositoryId === repo.repositoryId }"
-          @click="selectRepository(repo)"
-        >
-          <div>
-            <span class="badge">{{ repo.projectType }}</span>
-            <h2>{{ repo.projectName }}</h2>
-            <p>{{ repo.name }}</p>
+
+        <div class="mission-list-group">
+          <div class="mission-list-group__head">
+            <h2>진행 중인 프로젝트</h2>
+            <span>{{ activeRepositories.length }}</span>
           </div>
-          <button class="danger small nowrap" type="button" @click.stop="removeRepository(repo)">삭제</button>
-        </article>
+          <article
+            v-for="repo in activeRepositories"
+            :key="repo.repositoryId"
+            class="mission-repo-card fx-hover"
+            :class="{ selected: selected && selected.repositoryId === repo.repositoryId }"
+            @click="selectRepository(repo)"
+          >
+            <div>
+              <span class="badge">{{ repo.projectType }}</span>
+              <h2>{{ repo.projectName }}</h2>
+              <p>{{ repo.name }}</p>
+              <span class="mission-repo-status">{{ repoStatusLabel(repo) }}</span>
+            </div>
+            <button class="danger small nowrap" type="button" @click.stop="removeRepository(repo)">삭제</button>
+          </article>
+          <div v-if="!activeRepositories.length && repositories.length" class="mission-empty-small">
+            진행 중인 프로젝트가 없습니다.
+          </div>
+        </div>
+
+        <div v-if="completedRepositories.length" class="mission-list-group mission-list-group--completed">
+          <div class="mission-list-group__head">
+            <h2>완료한 프로젝트</h2>
+            <span>{{ completedRepositories.length }}</span>
+          </div>
+          <article
+            v-for="repo in completedRepositories"
+            :key="repo.repositoryId"
+            class="mission-repo-card mission-repo-card--completed fx-hover"
+            :class="{ selected: selected && selected.repositoryId === repo.repositoryId }"
+            @click="selectRepository(repo)"
+          >
+            <div>
+              <span class="badge">Completed</span>
+              <h2>{{ repo.projectName }}</h2>
+              <p>{{ repo.name }}</p>
+              <span class="mission-repo-status completed">프로젝트 완료</span>
+            </div>
+            <button class="danger small nowrap" type="button" @click.stop="removeRepository(repo)">삭제</button>
+          </article>
+        </div>
+
         <div v-if="!repositories.length && !message" class="empty-state">
-          <h2>진행 중인 프로젝트가 없습니다</h2>
+          <h2>미션 프로젝트가 없습니다</h2>
           <p>프로젝트 페이지에서 새 학습 저장소를 만들어 시작하세요.</p>
           <button class="primary" type="button" @click="$router.push('/projects')">프로젝트 보러가기</button>
         </div>
@@ -39,8 +73,8 @@
             <h1>{{ spec.title || status.projectName }}</h1>
             <p>{{ currentStepContent }}</p>
           </div>
-          <div class="mission-state" :class="{ passed: status.currentStepPassed }">
-            <strong>{{ status.currentStepPassed ? 'PASSED' : 'IN PROGRESS' }}</strong>
+          <div class="mission-state" :class="{ passed: status.currentStepPassed || status.completed, completed: status.completed }">
+            <strong>{{ status.completed ? 'COMPLETED' : status.currentStepPassed ? 'PASSED' : 'IN PROGRESS' }}</strong>
             <span>{{ status.branchName }}</span>
           </div>
         </div>
@@ -49,7 +83,12 @@
           <div class="mission-requirements">
             <div class="mission-requirements__head">
               <h2>요구사항</h2>
-              <span>Markdown</span>
+              <div class="mission-requirements__actions">
+                <span>Markdown</span>
+                <button class="secondary small nowrap" type="button" @click="requirementsOpen = true">
+                  크게 보기
+                </button>
+              </div>
             </div>
             <div
               class="markdown-preview mission-spec-document"
@@ -64,10 +103,10 @@
               <div><dt>트랙</dt><dd>{{ selected.projectType }}</dd></div>
               <div><dt>스텝 제목</dt><dd>{{ currentStepInfo.title || spec.title || '-' }}</dd></div>
               <div><dt>현재 스텝</dt><dd>{{ currentStep }} / {{ maxStep }}</dd></div>
-              <div><dt>진행 상태</dt><dd>{{ status.currentStepPassed ? '통과 완료' : '진행 중' }}</dd></div>
+              <div><dt>진행 상태</dt><dd>{{ status.completed ? '프로젝트 완료' : status.currentStepPassed ? '통과 완료' : '진행 중' }}</dd></div>
               <div><dt>브랜치</dt><dd>{{ status.branchName }}</dd></div>
             </dl>
-            <a v-if="status.htmlUrl" class="github-open-button" :href="status.htmlUrl" target="_blank" rel="noreferrer">
+            <a v-if="githubBranchUrl" class="github-open-button" :href="githubBranchUrl" target="_blank" rel="noreferrer">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path
                   fill="currentColor"
@@ -93,6 +132,30 @@
         </div>
       </section>
     </main>
+
+    <div
+      v-if="requirementsOpen"
+      class="modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mission-requirements-title"
+      @click.self="requirementsOpen = false"
+    >
+      <article class="modal-panel markdown-modal mission-requirements-modal">
+        <div class="mission-requirements-modal__head">
+          <div>
+            <span class="badge">{{ spec.stepId || status.currentStep }}</span>
+            <h2 id="mission-requirements-title">요구사항 크게 보기</h2>
+            <p>{{ spec.title || currentStepInfo.title || status.projectName }}</p>
+          </div>
+          <button class="secondary small nowrap" type="button" @click="requirementsOpen = false">닫기</button>
+        </div>
+        <div
+          class="markdown-preview mission-spec-document mission-spec-document--modal"
+          v-html="renderSpecMarkdown(spec.description)"
+        ></div>
+      </article>
+    </div>
     <AppFooter />
   </div>
 </template>
@@ -125,6 +188,7 @@ export default {
       spec: { requirements: [] },
       checking: false,
       message: '',
+      requirementsOpen: false,
     }
   },
   computed: {
@@ -150,25 +214,64 @@ export default {
     currentStepContent() {
       return this.currentStepInfo.content || this.currentStepInfo.description || ''
     },
+    activeRepositories() {
+      return this.repositories.filter(repo => !this.isCompleted(repo))
+    },
+    completedRepositories() {
+      return this.repositories.filter(repo => this.isCompleted(repo))
+    },
+    githubBranchUrl() {
+      const baseUrl = this.status.htmlUrl || this.selected && this.selected.htmlUrl
+      const repositoryName = this.status.name || this.selected && this.selected.name
+      const branchName = this.status.branchName
+      if (!baseUrl) return ''
+      if (!repositoryName || !branchName) return baseUrl
+
+      const normalizedBaseUrl = baseUrl.replace(/\/$/, '').replace(/\.git$/, '')
+      const encodedRepositoryName = encodeURIComponent(repositoryName)
+      const encodedBranchName = branchName.split('/').map(encodeURIComponent).join('/')
+
+      if (normalizedBaseUrl.endsWith(`/${repositoryName}`) || normalizedBaseUrl.endsWith(`/${encodedRepositoryName}`)) {
+        return `${normalizedBaseUrl}/tree/${encodedBranchName}`
+      }
+
+      return `${normalizedBaseUrl}/${encodedRepositoryName}/tree/${encodedBranchName}`
+    },
   },
   async created() {
     await this.loadRepositories()
+  },
+  mounted() {
+    window.addEventListener('keydown', this.handleKeydown)
+  },
+  beforeDestroy() {
+    window.removeEventListener('keydown', this.handleKeydown)
   },
   methods: {
     async loadRepositories() {
       this.message = ''
       try {
-        this.repositories = await getLearningRepositories()
+        const repositories = await getLearningRepositories()
+        this.repositories = await Promise.all(repositories.map(async repo => {
+          const status = await getRepositoryStatus(repo.repositoryId)
+          return { ...repo, status }
+        }))
         const saved = getSavedRepository()
-        const next = this.repositories.find(repo => saved && repo.repositoryId === saved.repositoryId) || this.repositories[0]
+        const next = this.repositories.find(repo => saved && repo.repositoryId === saved.repositoryId) ||
+          this.activeRepositories[0] ||
+          this.completedRepositories[0]
         if (next) await this.selectRepository(next)
       } catch (error) {
         this.message = error.message
       }
     },
     async selectRepository(repo) {
+      this.requirementsOpen = false
       this.selected = repo
-      this.status = await getRepositoryStatus(repo.repositoryId)
+      this.status = repo.status || await getRepositoryStatus(repo.repositoryId)
+      this.repositories = this.repositories.map(item => {
+        return item.repositoryId === repo.repositoryId ? { ...item, status: this.status } : item
+      })
       saveRepository({ ...repo, ...this.status })
       const step = stepNumber(this.status.currentStep)
       const [projectSteps, spec] = await Promise.all([
@@ -187,7 +290,8 @@ export default {
         this.status = {}
         this.projectSteps = []
         this.spec = { requirements: [] }
-        if (this.repositories[0]) await this.selectRepository(this.repositories[0])
+        const next = this.activeRepositories[0] || this.completedRepositories[0]
+        if (next) await this.selectRepository(next)
       }
     },
     async startCheck() {
@@ -211,6 +315,17 @@ export default {
     },
     renderSpecMarkdown(markdown) {
       return renderMarkdown(markdown || '아직 표시할 요구사항이 없습니다.')
+    },
+    handleKeydown(event) {
+      if (event.key === 'Escape') this.requirementsOpen = false
+    },
+    isCompleted(repo) {
+      return Boolean(repo && repo.status && repo.status.completed)
+    },
+    repoStatusLabel(repo) {
+      if (this.isCompleted(repo)) return '프로젝트 완료'
+      if (repo && repo.status && repo.status.currentStepPassed) return '현재 스텝 통과'
+      return '진행 중'
     },
   },
 }

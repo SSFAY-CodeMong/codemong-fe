@@ -8,10 +8,10 @@
           <h1>CodeMong</h1>
           <p>
             GitHub Repository를 선택하고 코드를 검사하면 Spring Boot 백엔드와 RAG 기반 AI가 코드 리뷰,
-            실패 원인, 개선 피드백을 하나의 리포트로 정리합니다.
+            실패 원인, 개선 피드백을 하나의 리포트로 <br>정리합니다.
           </p>
           <div class="toolbar">
-            <button class="primary" type="button" @click="$router.push('/projects')">Repository 검사 시작</button>
+            <button class="primary" type="button" @click="$router.push('/projects')">프로젝트 만들기</button>
             <button class="secondary" type="button" @click="$router.push('/reports')">리뷰 리포트 보기</button>
           </div>
         </div>
@@ -43,7 +43,7 @@
         <div class="home-grid__cards">
           <article class="home-strength-card">
             <span class="home-strength-card__number">하나!</span>
-            <h3>손쉬운 관리, 한 눈에 보는 기록</h3>
+            <h3>손쉬운 관리, <br>한 눈에 보는 기록</h3>
             <p>내가 검사한 레포지토리와 리뷰 결과를 모아 보고, 필요한 순간 다시 확인할 수 있습니다.</p>
 
           </article>

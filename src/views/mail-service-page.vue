@@ -50,7 +50,6 @@
             <button class="primary" type="button" @click="sendTest" :disabled="sending || !hasSubscriptionEmail">
               {{ sending ? '테스트 발송 중' : '테스트 메일 보내기' }}
             </button>
-            <button class="secondary" type="button" @click="loadDashboard" :disabled="loading">새로고침</button>
           </div>
           <p v-if="message" class="status" :class="{ fail: hasError, ok: !hasError }">{{ message }}</p>
         </article>
@@ -196,6 +195,7 @@ import {
   getMailContents,
   getMailDashboard,
   getRandomMailQuestion,
+  hasAccessToken,
   sendTestMail,
   submitMailAnswer,
   updateMailSubscription,
@@ -241,18 +241,30 @@ export default {
     }
   },
   created() {
+    if (!this.ensureAuthenticated()) return
     this.loadDashboard()
     this.loadQuestion()
     this.loadContents()
   },
   mounted() {
     const contentId = this.$route.query.content
-    if (contentId) {
+    if (contentId && hasAccessToken()) {
       this.openContent({ id: contentId })
     }
   },
   methods: {
+    ensureAuthenticated() {
+      if (hasAccessToken()) return true
+      this.hasError = true
+      this.message = '로그인 후 DailyMong을 이용할 수 있습니다.'
+      this.subscription = { enabled: false, email: '' }
+      this.enabledDraft = false
+      this.question = null
+      this.contents = []
+      return false
+    },
     async loadDashboard() {
+      if (!this.ensureAuthenticated()) return
       this.loading = true
       this.message = ''
       this.hasError = false
@@ -270,12 +282,19 @@ export default {
       }
     },
     async loadQuestion() {
+      if (!this.ensureAuthenticated()) return
       this.answerResult = null
       this.answerContent = ''
       this.codeContent = ''
-      this.question = await getRandomMailQuestion()
+      try {
+        this.question = await getRandomMailQuestion()
+      } catch (error) {
+        this.hasError = true
+        this.message = error.message
+      }
     },
     async submitAnswer() {
+      if (!this.ensureAuthenticated()) return
       if (!this.question) return
       this.evaluating = true
       try {
@@ -290,10 +309,23 @@ export default {
       }
     },
     async loadContents() {
-      this.contents = await getMailContents()
+      if (!this.ensureAuthenticated()) return
+      try {
+        this.contents = await getMailContents()
+      } catch (error) {
+        this.contents = []
+        this.hasError = true
+        this.message = error.message
+      }
     },
     async openContent(content) {
-      this.openedContent = await getMailContent(content.id)
+      if (!this.ensureAuthenticated()) return
+      try {
+        this.openedContent = await getMailContent(content.id)
+      } catch (error) {
+        this.hasError = true
+        this.message = error.message
+      }
     },
     highlightCode(code) {
       const source = code || ''
@@ -409,6 +441,7 @@ export default {
         .replace(/>/g, '&gt;')
     },
     async saveSubscription() {
+      if (!this.ensureAuthenticated()) return
       if (!this.subscription.email) {
         this.hasError = true
         this.enabledDraft = false
@@ -427,6 +460,7 @@ export default {
       }
     },
     async sendTest() {
+      if (!this.ensureAuthenticated()) return
       this.sending = true
       this.message = ''
       try {
