@@ -8,6 +8,7 @@ const CHECK_REQUEST_KEY = 'codemong_check_request'
 const START_REQUEST_KEY = 'codemong_project_start_request'
 const LOGIN_REISSUE_PENDING_KEY = 'codemong_login_reissue_pending'
 const LOGGED_OUT_KEY = 'codemong_logged_out'
+const ADMIN_TOKEN_KEY = 'codemong_admin_token'
 
 let reissuePromise = null
 let currentUser = null
@@ -47,6 +48,14 @@ export function clearSession() {
   currentUser = null
 }
 
+export function getAdminToken() {
+  return window.localStorage.getItem(ADMIN_TOKEN_KEY)
+}
+
+export function clearAdminToken() {
+  window.localStorage.removeItem(ADMIN_TOKEN_KEY)
+}
+
 function markLoggedOut() {
   window.sessionStorage.setItem(LOGGED_OUT_KEY, 'true')
   clearLoginRedirectReissue()
@@ -61,7 +70,7 @@ function isLoggedOut() {
 }
 
 async function request(path, options = {}) {
-  const { auth = false, isRetry = false, ...fetchOptions } = options
+  const { auth = false, isRetry = false, skipAuthHeader = false, errorRedirect = true, ...fetchOptions } = options
   if (auth && isLoggedOut()) {
     throw new Error('로그인이 필요합니다.')
   }
@@ -72,7 +81,7 @@ async function request(path, options = {}) {
     ...(fetchOptions.headers || {}),
   }
   const token = getToken()
-  if (token && path !== '/auth/reissue') headers.Authorization = `Bearer ${token}`
+  if (!skipAuthHeader && token && path !== '/auth/reissue') headers.Authorization = `Bearer ${token}`
 
   let response
   try {
@@ -82,6 +91,7 @@ async function request(path, options = {}) {
       headers,
     })
   } catch (error) {
+    if (errorRedirect) redirectToErrorPage(500)
     throw new Error('백엔드 서버가 꺼져 있거나 로그인 세션이 없습니다.')
   }
 
@@ -91,6 +101,7 @@ async function request(path, options = {}) {
   try {
     data = text ? JSON.parse(text) : null
   } catch (error) {
+    if (errorRedirect) redirectToErrorPage(response.status)
     throw new Error('API가 JSON이 아닌 응답을 반환했습니다. 로그인 상태를 확인하세요.')
   }
 
@@ -122,6 +133,7 @@ async function request(path, options = {}) {
       }
     }
 
+    if (errorRedirect) redirectToErrorPage(response.status)
     throw new Error(message || `HTTP ${response.status}`)
   }
   return data
@@ -129,7 +141,7 @@ async function request(path, options = {}) {
 
 export async function reissueToken() {
   if (!reissuePromise) {
-    reissuePromise = request('/auth/reissue', { method: 'POST' })
+    reissuePromise = request('/auth/reissue', { method: 'POST', errorRedirect: false })
       .then(data => {
         setToken(data.accessToken)
         return data.accessToken
@@ -158,6 +170,13 @@ export function clearLoginRedirectReissue() {
 function redirectToLogin() {
   if (window.location.pathname !== '/login') {
     window.location.href = '/login'
+  }
+}
+
+function redirectToErrorPage(status) {
+  const target = status === 404 ? '/404' : '/500'
+  if (window.location.pathname !== target) {
+    window.location.href = target
   }
 }
 
@@ -196,6 +215,42 @@ export const getProjects = () => request('/projects')
 export const getProject = projectId => request(`/projects/${projectId}`)
 export const getProjectSteps = projectId => request(`/projects/${projectId}/steps`)
 export const getStepSpec = (projectId, step) => request(`/projects/${projectId}/steps/${step}/spec`)
+
+export async function adminLogin(username, password) {
+  const data = await request('/admin/login', {
+    method: 'POST',
+    skipAuthHeader: true,
+    errorRedirect: false,
+    body: JSON.stringify({ username, password }),
+  })
+  window.localStorage.setItem(ADMIN_TOKEN_KEY, data.token)
+  return data
+}
+
+function adminHeaders() {
+  const token = getAdminToken()
+  return token ? { 'X-Admin-Token': token } : {}
+}
+
+export const getAdminMetrics = () => request('/admin/metrics', { skipAuthHeader: true, headers: adminHeaders() })
+export const getAdminUserProgress = () => request('/admin/users/progress', { skipAuthHeader: true, headers: adminHeaders() })
+export const getAdminLogs = () => request('/admin/logs', { skipAuthHeader: true, headers: adminHeaders() })
+export const adminForceDeleteRepository = repositoryId =>
+  request(`/admin/repositories/${repositoryId}`, { method: 'DELETE', skipAuthHeader: true, headers: adminHeaders() })
+export const adminUpdateUserEmail = (userId, email) =>
+  request(`/admin/users/${userId}/email`, {
+    method: 'PATCH',
+    skipAuthHeader: true,
+    headers: adminHeaders(),
+    body: JSON.stringify({ email }),
+  })
+export const adminSetUserBan = (userId, banned) =>
+  request(`/admin/users/${userId}/ban`, {
+    method: 'PATCH',
+    skipAuthHeader: true,
+    headers: adminHeaders(),
+    body: JSON.stringify({ banned }),
+  })
 
 export async function startProject(projectId, payload) {
   const data = await request(`/github/repositories/${projectId}`, {
