@@ -69,8 +69,15 @@ function isLoggedOut() {
   return window.sessionStorage.getItem(LOGGED_OUT_KEY) === 'true'
 }
 
+function apiError(message, status) {
+  const error = new Error(message)
+  error.status = status
+  return error
+}
+
 async function request(path, options = {}) {
-  const { auth = false, isRetry = false, skipAuthHeader = false, errorRedirect = true, ...fetchOptions } = options
+  const { auth = false, adminAuth = false, isRetry = false, skipAuthHeader = false, errorRedirect = true, ...fetchOptions } = options
+  const isAdminPath = path.startsWith('/admin')
   if (auth && isLoggedOut()) {
     throw new Error('로그인이 필요합니다.')
   }
@@ -92,7 +99,7 @@ async function request(path, options = {}) {
     })
   } catch (error) {
     if (errorRedirect) redirectToErrorPage(500)
-    throw new Error('백엔드 서버가 꺼져 있거나 로그인 세션이 없습니다.')
+    throw apiError('백엔드 서버가 꺼져 있거나 로그인 세션이 없습니다.', 500)
   }
 
   if (response.status === 204) return null
@@ -102,11 +109,16 @@ async function request(path, options = {}) {
     data = text ? JSON.parse(text) : null
   } catch (error) {
     if (errorRedirect) redirectToErrorPage(response.status)
-    throw new Error('API가 JSON이 아닌 응답을 반환했습니다. 로그인 상태를 확인하세요.')
+    throw apiError('API가 JSON이 아닌 응답을 반환했습니다. 로그인 상태를 확인하세요.', response.status)
   }
 
   if (!response.ok) {
     const message = data && (data.message || data.error || data.errorCode)
+
+    if (adminAuth && (response.status === 401 || response.status === 403)) {
+      clearAdminToken()
+      throw apiError('관리자 세션이 만료되었습니다. 다시 로그인해주세요.', response.status)
+    }
     
     // access token 만료 감지 (401 Unauthorized 상태코드 또는 에러메시지에 EXPIRED_TOKEN 등이 포함된 경우)
     const isTokenExpired = response.status === 401 || (message && (
@@ -115,7 +127,7 @@ async function request(path, options = {}) {
       String(message).includes('Expired')
     ))
 
-    if (isTokenExpired && !isRetry && path !== '/auth/reissue' && !isLoggedOut()) {
+    if (isTokenExpired && !adminAuth && !isAdminPath && !isRetry && path !== '/auth/reissue' && !isLoggedOut()) {
       try {
         const newAccessToken = await reissueToken()
         const nextOptions = { ...options, isRetry: true }
@@ -129,12 +141,12 @@ async function request(path, options = {}) {
       } catch (reissueError) {
         clearSession()
         redirectToLogin()
-        throw new Error('세션이 만료되었습니다. 다시 로그인해주세요.')
+        throw apiError('세션이 만료되었습니다. 다시 로그인해주세요.', 401)
       }
     }
 
     if (errorRedirect) redirectToErrorPage(response.status)
-    throw new Error(message || `HTTP ${response.status}`)
+    throw apiError(message || `HTTP ${response.status}`, response.status)
   }
   return data
 }
@@ -254,23 +266,32 @@ function adminHeaders() {
   return token ? { 'X-Admin-Token': token } : {}
 }
 
-export const getAdminMetrics = () => request('/admin/metrics', { skipAuthHeader: true, headers: adminHeaders() })
-export const getAdminUserProgress = () => request('/admin/users/progress', { skipAuthHeader: true, headers: adminHeaders() })
-export const getAdminLogs = () => request('/admin/logs', { skipAuthHeader: true, headers: adminHeaders() })
-export const adminForceDeleteRepository = repositoryId =>
-  request(`/admin/repositories/${repositoryId}`, { method: 'DELETE', skipAuthHeader: true, headers: adminHeaders() })
-export const adminUpdateUserEmail = (userId, email) =>
-  request(`/admin/users/${userId}/email`, {
-    method: 'PATCH',
+function adminRequest(path, options = {}) {
+  return request(path, {
+    ...options,
+    adminAuth: true,
     skipAuthHeader: true,
-    headers: adminHeaders(),
+    errorRedirect: false,
+    headers: {
+      ...adminHeaders(),
+      ...(options.headers || {}),
+    },
+  })
+}
+
+export const getAdminMetrics = () => adminRequest('/admin/metrics')
+export const getAdminUserProgress = () => adminRequest('/admin/users/progress')
+export const getAdminLogs = () => adminRequest('/admin/logs')
+export const adminForceDeleteRepository = repositoryId =>
+  adminRequest(`/admin/repositories/${repositoryId}`, { method: 'DELETE' })
+export const adminUpdateUserEmail = (userId, email) =>
+  adminRequest(`/admin/users/${userId}/email`, {
+    method: 'PATCH',
     body: JSON.stringify({ email }),
   })
 export const adminSetUserBan = (userId, banned) =>
-  request(`/admin/users/${userId}/ban`, {
+  adminRequest(`/admin/users/${userId}/ban`, {
     method: 'PATCH',
-    skipAuthHeader: true,
-    headers: adminHeaders(),
     body: JSON.stringify({ banned }),
   })
 

@@ -349,7 +349,7 @@ export default {
         this.emailDrafts = drafts
         this.pushMemorySample()
       } catch (error) {
-        this.error = error.message || '관리자 데이터를 불러오지 못했습니다.'
+        this.handleAdminError(error, '관리자 데이터를 불러오지 못했습니다.')
       } finally {
         this.refreshing = false
       }
@@ -368,7 +368,7 @@ export default {
         await adminUpdateUserEmail(user.userId, email)
         await this.loadAll(false)
       } catch (error) {
-        this.error = error.message || '이메일 변경에 실패했습니다.'
+        this.handleAdminError(error, '이메일 변경에 실패했습니다.')
       }
     },
     async toggleBan(user) {
@@ -379,7 +379,7 @@ export default {
         await adminSetUserBan(user.userId, nextBanned)
         await this.loadAll(false)
       } catch (error) {
-        this.error = error.message || `${label}에 실패했습니다.`
+        this.handleAdminError(error, `${label}에 실패했습니다.`)
       }
     },
     async deleteRepo(repo) {
@@ -388,8 +388,20 @@ export default {
         await adminForceDeleteRepository(repo.repositoryId)
         await this.loadAll(false)
       } catch (error) {
-        this.error = error.message || 'Repository 삭제에 실패했습니다.'
+        this.handleAdminError(error, 'Repository 삭제에 실패했습니다.')
       }
+    },
+    handleAdminError(error, fallbackMessage) {
+      if (error && (error.status === 401 || error.status === 403)) {
+        clearAdminToken()
+        this.stopPolling()
+        this.authenticated = false
+        this.metrics = null
+        this.users = []
+        this.logs = []
+        this.memorySamples = []
+      }
+      this.error = (error && error.message) || fallbackMessage
     },
     formatDate(value) {
       if (!value) return '-'
