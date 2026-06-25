@@ -178,8 +178,8 @@ export function setCachedUser(user) {
   currentUser = user
 }
 
-export function getMe() {
-  if (currentUser) return Promise.resolve(currentUser)
+export function getMe(force = false) {
+  if (currentUser && !force) return Promise.resolve(currentUser)
   if (!mePromise) {
     mePromise = request('/users/me', { auth: true })
       .then(user => {
@@ -192,6 +192,28 @@ export function getMe() {
   }
   return mePromise
 }
+
+export const sendEmailCode = email =>
+  request('/mail/code-send', {
+    auth: true,
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+
+export const verifyEmailCode = (email, code) =>
+  request('/mail/code-verify', {
+    auth: true,
+    method: 'POST',
+    body: JSON.stringify({ email, code }),
+  })
+
+export const updateUserEmail = email =>
+  request('/users', {
+    auth: true,
+    method: 'PATCH',
+    body: JSON.stringify({ email }),
+  })
+
 export const getProjects = () => request('/projects')
 export const getProject = projectId => request(`/projects/${projectId}`)
 export const getProjectSteps = projectId => request(`/projects/${projectId}/steps`)

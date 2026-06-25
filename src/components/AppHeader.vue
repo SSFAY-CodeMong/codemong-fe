@@ -17,7 +17,9 @@
     </nav>
     <div class="header-actions">
       <template v-if="user">
-        <span class="user-chip">{{ user.name || user.email || 'GitHub User' }}</span>
+        <button class="user-chip" type="button" @click="$router.push('/profile')">
+          {{ user.name || user.email || 'GitHub User' }}
+        </button>
         <button class="secondary small" type="button" @click="logout">로그아웃</button>
       </template>
       <button v-else-if="checkedAuth" class="primary small" type="button" @click="$router.push('/login')">GitHub 로그인</button>
@@ -59,7 +61,16 @@ export default {
       this.checkedAuth = true
     }
   },
+  mounted() {
+    window.addEventListener('codemong:user-updated', this.handleUserUpdated)
+  },
+  beforeDestroy() {
+    window.removeEventListener('codemong:user-updated', this.handleUserUpdated)
+  },
   methods: {
+    handleUserUpdated(event) {
+      this.user = event.detail || getCachedUser()
+    },
     isActive(item) {
       if (this.activePage) return item.key === this.activePage
       return this.$route.path === item.path || this.$route.path.startsWith(`${item.path}/`)
