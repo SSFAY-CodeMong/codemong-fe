@@ -29,6 +29,7 @@ export default {
 }
 .error-mascot {
   width: min(280px, 70vw);
-  margin-bottom: 18px;
+  display: block;
+  margin: 0 auto 18px;
 }
 </style>
