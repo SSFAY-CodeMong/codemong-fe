@@ -83,7 +83,7 @@ import AppHeader from '../components/AppHeader.vue'
 import { getRepositoryReports } from '../api/codemong'
 import { renderMarkdown } from '../utils/markdown'
 
-const REPORT_PREVIEW_REPEAT_COUNT = 10
+const REPORT_PREVIEW_REPEAT_COUNT = 1
 
 export default {
   name: 'ReportsPage',
