@@ -18,6 +18,7 @@ import BackendAiFeedbackPage from './views/backend-ai-feedback-page'
 import NextStepLoadingPage from './views/next-step-loading-page'
 import CompletionPage from './views/completion-page'
 import ReportsPage from './views/reports-page'
+import ProfilePage from './views/profile-page'
 import MailServicePage from './views/mail-service-page'
 import HelpPage from './views/help-page'
 import NotFoundPage from './views/not-found-page'
@@ -108,6 +109,11 @@ export default new Router({
       name: 'ReportsPage',
       path: '/reports',
       component: ReportsPage,
+    },
+    {
+      name: 'ProfilePage',
+      path: '/profile',
+      component: ProfilePage,
     },
     {
       name: 'MailServicePage',
