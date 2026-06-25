@@ -37,7 +37,14 @@
           >
             <div>
               <span class="badge">완료 프로젝트 보고서 </span>
-              <strong>{{ report.projectName || `Report #${report.id}` }}</strong>
+              <span class="report-title-line">
+                <strong>{{ report.projectName || `Report #${report.id}` }}</strong>
+                <img
+                  class="report-stamp"
+                  :src="stampSrc(report)"
+                  :alt="`${reportGrade(report.score)} 등급 도장`"
+                />
+              </span>
               <div class="report-meta">
                 <span>Report #{{ report.id }}</span>
                 <span>Repository #{{ report.repositoryId }}</span>
@@ -131,6 +138,16 @@ export default {
     },
     renderReportContent(content) {
       return renderMarkdown(content || '')
+    },
+    reportGrade(score) {
+      const value = Number(score) || 0
+      if (value >= 95) return 'S'
+      if (value >= 85) return 'A'
+      if (value >= 70) return 'B'
+      return 'C'
+    },
+    stampSrc(report) {
+      return `/stamp${this.reportGrade(report.score)}.png`
     },
     isReportOpen(report) {
       return this.openedReportViewId === report.reportViewId
