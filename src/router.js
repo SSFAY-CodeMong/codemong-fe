@@ -135,8 +135,7 @@ export default new Router({
     {
       name: 'MailServiceLogsPage',
       path: '/mail-service/logs',
-      component: MailServicePage,
-      props: { section: 'logs' },
+      redirect: '/mail-service/settings',
     },
     {
       name: 'HelpPage',

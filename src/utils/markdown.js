@@ -50,6 +50,24 @@ function shouldFenceCodeCandidate(lines) {
   return nonEmptyLines.some(line => /^\s{2,}\S/.test(line))
 }
 
+function isTableRow(line) {
+  const trimmed = line.trim()
+  return trimmed.startsWith('|') && trimmed.endsWith('|') && trimmed.slice(1, -1).includes('|')
+}
+
+function isTableSeparator(line) {
+  return /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(line.trim())
+}
+
+function parseTableCells(line) {
+  return line
+    .trim()
+    .replace(/^\|/, '')
+    .replace(/\|$/, '')
+    .split('|')
+    .map(cell => cell.trim())
+}
+
 function autoFenceCodeBlocks(markdown) {
   const lines = String(markdown).replace(/\r\n/g, '\n').split('\n')
   const result = []
@@ -103,12 +121,35 @@ export function renderMarkdown(markdown) {
   let inCode = false
   let codeLines = []
   let listType = ''
+  let tableRows = []
 
   const closeList = () => {
     if (listType) {
       html.push(`</${listType}>`)
       listType = ''
     }
+  }
+
+  const closeTable = () => {
+    if (!tableRows.length) return
+
+    const [head, ...body] = tableRows
+    html.push('<table>')
+    html.push(`<thead><tr>${head.map(cell => `<th>${renderInline(cell)}</th>`).join('')}</tr></thead>`)
+    if (body.length) {
+      html.push('<tbody>')
+      body.forEach(row => {
+        html.push(`<tr>${row.map(cell => `<td>${renderInline(cell)}</td>`).join('')}</tr>`)
+      })
+      html.push('</tbody>')
+    }
+    html.push('</table>')
+    tableRows = []
+  }
+
+  const closeFlow = () => {
+    closeList()
+    closeTable()
   }
 
   const openList = (nextType, startNumber = null) => {
@@ -131,7 +172,7 @@ export function renderMarkdown(markdown) {
         codeLines = []
         inCode = false
       } else {
-        closeList()
+        closeFlow()
         inCode = true
       }
       return
@@ -143,43 +184,55 @@ export function renderMarkdown(markdown) {
     }
 
     if (!trimmed) {
+      closeFlow()
+      return
+    }
+
+    if (isTableSeparator(line)) {
       closeList()
       return
     }
 
-    if (trimmed === '<details>' || trimmed === '</details>') {
+    if (isTableRow(line)) {
       closeList()
+      tableRows.push(parseTableCells(line))
+      return
+    }
+
+    if (trimmed === '<details>' || trimmed === '</details>') {
+      closeFlow()
       html.push(trimmed)
       return
     }
 
     const summary = trimmed.match(/^<summary>(.*)<\/summary>$/)
     if (summary) {
-      closeList()
+      closeFlow()
       html.push(`<summary>${renderInline(summary[1])}</summary>`)
       return
     }
 
     if (trimmed.startsWith('### ')) {
-      closeList()
+      closeFlow()
       html.push(`<h3>${renderInline(trimmed.slice(4))}</h3>`)
       return
     }
 
     if (trimmed.startsWith('## ')) {
-      closeList()
+      closeFlow()
       html.push(`<h2>${renderInline(trimmed.slice(3))}</h2>`)
       return
     }
 
     if (trimmed.startsWith('# ')) {
-      closeList()
+      closeFlow()
       html.push(`<h1>${renderInline(trimmed.slice(2))}</h1>`)
       return
     }
 
     const ordered = trimmed.match(/^(\d+)\.\s+(.+)$/)
     if (ordered) {
+      closeTable()
       openList('ol', Number(ordered[1]))
       html.push(`<li>${renderInline(ordered[2])}</li>`)
       return
@@ -187,19 +240,21 @@ export function renderMarkdown(markdown) {
 
     const unordered = trimmed.match(/^[-*]\s+(.+)$/)
     if (unordered) {
+      closeTable()
       openList('ul')
       html.push(`<li>${renderInline(unordered[1])}</li>`)
       return
     }
 
     closeList()
+    closeTable()
     html.push(`<p>${renderInline(line)}</p>`)
   })
 
   if (inCode) {
     html.push(`<pre><code>${escapeHtml(codeLines.join('\n'))}</code></pre>`)
   }
-  closeList()
+  closeFlow()
   return html.join('')
 }
 

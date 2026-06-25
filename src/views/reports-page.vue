@@ -23,31 +23,45 @@
       </section>
 
       <section v-else class="report-grid">
-        <article v-for="report in reports" :key="report.id" class="report-card">
-          <div class="report-card__top">
+        <article
+          v-for="report in displayReports"
+          :key="report.reportViewId"
+          class="report-card"
+          :class="{ open: isReportOpen(report) }"
+        >
+          <button
+            class="report-card__summary"
+            type="button"
+            :aria-expanded="isReportOpen(report) ? 'true' : 'false'"
+            @click="toggleReport(report)"
+          >
             <div>
-              <span class="badge">Review Report</span>
+              <span class="badge">완료 프로젝트 보고서 </span>
               <strong>{{ report.projectName || `Report #${report.id}` }}</strong>
               <div class="report-meta">
                 <span>Report #{{ report.id }}</span>
                 <span>Repository #{{ report.repositoryId }}</span>
+                <span>{{ formatDate(report.createdAt) }}</span>
               </div>
             </div>
-            <span class="status ok">{{ report.score }}점</span>
-          </div>
-          <p class="report-date">{{ formatDate(report.createdAt) }}</p>
-          <div class="answer-box markdown-preview report-content" v-html="renderReportContent(report.content)"></div>
+            <span class="report-score">{{ report.score }}점</span>
+            <span class="report-toggle-mark">{{ isReportOpen(report) ? '접기' : '열기' }}</span>
+          </button>
 
-          <div v-if="report.feedbackDetails && report.feedbackDetails.length" class="report-feedback-details">
-            <h3>Step별 최신 피드백</h3>
-            <article
-              v-for="detail in report.feedbackDetails"
-              :key="`${report.id}-${detail.step}`"
-              class="report-feedback-item"
-            >
-              <span class="badge">Step {{ detail.step }}</span>
-              <div class="markdown-preview report-feedback-content" v-html="renderReportContent(detail.content)"></div>
-            </article>
+          <div v-if="isReportOpen(report)" class="report-card__body">
+            <div class="answer-box markdown-preview report-content" v-html="renderReportContent(report.content)"></div>
+
+            <div v-if="report.feedbackDetails && report.feedbackDetails.length" class="report-feedback-details">
+              <h3>Step별 최신 피드백</h3>
+              <article
+                v-for="detail in report.feedbackDetails"
+                :key="`${report.reportViewId}-${detail.step}`"
+                class="report-feedback-item"
+              >
+                <span class="badge">Step {{ detail.step }}</span>
+                <div class="markdown-preview report-feedback-content" v-html="renderReportContent(detail.content)"></div>
+              </article>
+            </div>
           </div>
         </article>
       </section>
@@ -62,6 +76,8 @@ import AppHeader from '../components/AppHeader.vue'
 import { getRepositoryReports } from '../api/codemong'
 import { renderMarkdown } from '../utils/markdown'
 
+const REPORT_PREVIEW_REPEAT_COUNT = 10
+
 export default {
   name: 'ReportsPage',
   components: { AppFooter, AppHeader },
@@ -70,18 +86,39 @@ export default {
       reports: [],
       loading: false,
       message: '',
+      openedReportViewId: '',
     }
+  },
+  computed: {
+    displayReports() {
+      if (REPORT_PREVIEW_REPEAT_COUNT <= 1) {
+        return this.reports.map((report, index) => this.decorateReport(report, index, 0))
+      }
+
+      return Array.from({ length: REPORT_PREVIEW_REPEAT_COUNT }).flatMap((_, round) =>
+        this.reports.map((report, index) => this.decorateReport(report, index, round))
+      )
+    },
   },
   created() {
     this.loadReports()
   },
   methods: {
+    decorateReport(report, index, round) {
+      const baseId = report.id || report.repositoryId || index
+      return {
+        ...report,
+        reportViewId: `${baseId}-${index}-${round}`,
+        projectName: round === 0 ? report.projectName : `${report.projectName || `Report #${baseId}`} #${round + 1}`,
+      }
+    },
     async loadReports() {
       this.loading = true
       this.message = ''
       try {
         const reports = await getRepositoryReports()
         this.reports = Array.isArray(reports) ? reports : []
+        this.openedReportViewId = this.displayReports[0] ? this.displayReports[0].reportViewId : ''
       } catch (error) {
         this.message = error.message
       } finally {
@@ -94,6 +131,12 @@ export default {
     },
     renderReportContent(content) {
       return renderMarkdown(content || '')
+    },
+    isReportOpen(report) {
+      return this.openedReportViewId === report.reportViewId
+    },
+    toggleReport(report) {
+      this.openedReportViewId = this.isReportOpen(report) ? '' : report.reportViewId
     },
   },
 }

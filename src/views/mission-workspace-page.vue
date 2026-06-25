@@ -37,7 +37,7 @@
           <div>
             <span class="badge">{{ spec.stepId || status.currentStep }}</span>
             <h1>{{ spec.title || status.projectName }}</h1>
-            <p>{{ spec.description }}</p>
+            <p>{{ currentStepContent }}</p>
           </div>
           <div class="mission-state" :class="{ passed: status.currentStepPassed }">
             <strong>{{ status.currentStepPassed ? 'PASSED' : 'IN PROGRESS' }}</strong>
@@ -46,20 +46,36 @@
         </div>
 
         <div class="mission-content-grid">
-          <div>
-            <h2>요구사항</h2>
-            <ul class="check-list">
-              <li v-for="item in spec.requirements" :key="item">{{ item }}</li>
-            </ul>
+          <div class="mission-requirements">
+            <div class="mission-requirements__head">
+              <h2>요구사항</h2>
+              <span>Markdown</span>
+            </div>
+            <div
+              class="markdown-preview mission-spec-document"
+              v-html="renderSpecMarkdown(spec.description)"
+            ></div>
           </div>
           <aside class="mission-side">
             <h2>저장소 정보</h2>
             <dl>
               <div><dt>프로젝트</dt><dd>{{ status.projectName }}</dd></div>
+              <div><dt>저장소</dt><dd>{{ status.name || selected.name }}</dd></div>
+              <div><dt>트랙</dt><dd>{{ selected.projectType }}</dd></div>
+              <div><dt>스텝 제목</dt><dd>{{ currentStepInfo.title || spec.title || '-' }}</dd></div>
               <div><dt>현재 스텝</dt><dd>{{ currentStep }} / {{ maxStep }}</dd></div>
+              <div><dt>진행 상태</dt><dd>{{ status.currentStepPassed ? '통과 완료' : '진행 중' }}</dd></div>
               <div><dt>브랜치</dt><dd>{{ status.branchName }}</dd></div>
             </dl>
-            <a v-if="status.htmlUrl" :href="status.htmlUrl" target="_blank" rel="noreferrer">GitHub에서 열기</a>
+            <a v-if="status.htmlUrl" class="github-open-button" :href="status.htmlUrl" target="_blank" rel="noreferrer">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path
+                  fill="currentColor"
+                  d="M12 2C6.48 2 2 6.58 2 12.24c0 4.53 2.87 8.37 6.84 9.73.5.09.68-.22.68-.49 0-.24-.01-1.04-.01-1.89-2.78.62-3.37-1.21-3.37-1.21-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.35 1.12 2.92.86.09-.67.35-1.12.64-1.38-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.33 9.33 0 0 1 12 6.99c.85 0 1.7.12 2.5.34 1.9-1.33 2.74-1.05 2.74-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.05.36.32.68.94.68 1.9 0 1.38-.01 2.49-.01 2.83 0 .27.18.59.69.49A10.13 10.13 0 0 0 22 12.24C22 6.58 17.52 2 12 2Z"
+                />
+              </svg>
+              <span>GitHub에서 열기</span>
+            </a>
           </aside>
         </div>
 
@@ -87,6 +103,7 @@ import AppHeader from '../components/AppHeader.vue'
 import {
   deleteLearningRepository,
   getLearningRepositories,
+  getProjectSteps,
   getRepositoryStatus,
   getSavedRepository,
   getStepSpec,
@@ -94,6 +111,7 @@ import {
   saveRepository,
   stepNumber,
 } from '../api/codemong'
+import { renderMarkdown } from '../utils/markdown'
 
 export default {
   name: 'MissionWorkspacePage',
@@ -103,6 +121,7 @@ export default {
       repositories: [],
       selected: null,
       status: {},
+      projectSteps: [],
       spec: { requirements: [] },
       checking: false,
       message: '',
@@ -114,6 +133,22 @@ export default {
     },
     maxStep() {
       return this.status.maxStep || this.selected && this.selected.maxStep || 5
+    },
+    currentStepInfo() {
+      const step = this.currentStep
+      const padded = String(step).padStart(2, '0')
+      return this.projectSteps.find(item => {
+        return Number(item.step) === step ||
+          Number(item.stepNumber) === step ||
+          Number(item.id) === step ||
+          item.stepId === this.status.currentStep ||
+          item.stepId === `step${padded}` ||
+          item.stepId === `STEP${padded}` ||
+          item.stepId === `STEP_${step}`
+      }) || {}
+    },
+    currentStepContent() {
+      return this.currentStepInfo.content || this.currentStepInfo.description || ''
     },
   },
   async created() {
@@ -136,7 +171,12 @@ export default {
       this.status = await getRepositoryStatus(repo.repositoryId)
       saveRepository({ ...repo, ...this.status })
       const step = stepNumber(this.status.currentStep)
-      this.spec = await getStepSpec(this.status.projectId, step)
+      const [projectSteps, spec] = await Promise.all([
+        getProjectSteps(this.status.projectId),
+        getStepSpec(this.status.projectId, step),
+      ])
+      this.projectSteps = Array.isArray(projectSteps) ? projectSteps : projectSteps.steps || []
+      this.spec = spec
     },
     async removeRepository(repo) {
       if (!window.confirm(`${repo.name} 저장소를 삭제할까요? GitHub 원격 저장소도 삭제됩니다.`)) return
@@ -145,6 +185,7 @@ export default {
       if (this.selected && this.selected.repositoryId === repo.repositoryId) {
         this.selected = null
         this.status = {}
+        this.projectSteps = []
         this.spec = { requirements: [] }
         if (this.repositories[0]) await this.selectRepository(this.repositories[0])
       }
@@ -167,6 +208,9 @@ export default {
       } finally {
         this.checking = false
       }
+    },
+    renderSpecMarkdown(markdown) {
+      return renderMarkdown(markdown || '아직 표시할 요구사항이 없습니다.')
     },
   },
 }

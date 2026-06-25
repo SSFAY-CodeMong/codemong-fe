@@ -11,9 +11,34 @@
           <button class="secondary small nowrap" type="button" @click="load">새로고침</button>
         </div>
 
+        <div class="progress-filter">
+          <label>
+            <span>진행 여부</span>
+            <select v-model="statusFilter">
+              <option value="all">전체</option>
+              <option value="in-progress">진행 중</option>
+              <option value="completed">완료</option>
+            </select>
+          </label>
+          <label>
+            <span>프로젝트</span>
+            <select v-model="projectFilter">
+              <option value="all">전체 프로젝트</option>
+              <option v-for="projectName in projectNames" :key="projectName" :value="projectName">
+                {{ projectName }}
+              </option>
+            </select>
+          </label>
+          <label>
+            <span>검색</span>
+            <input v-model.trim="keyword" type="search" placeholder="저장소 또는 프로젝트명" />
+          </label>
+          <button class="secondary small nowrap" type="button" @click="resetFilters">필터 초기화</button>
+        </div>
+
         <div class="progress-grid">
           <article
-            v-for="repo in repositories"
+            v-for="repo in filteredRepositories"
             :key="repo.repositoryId"
             class="progress-card fx-card fx-hover"
             :class="{ selected: selected && selected.repositoryId === repo.repositoryId }"
@@ -33,6 +58,11 @@
               <span>{{ repo.status && repo.status.currentStepPassed ? '통과' : '진행 중' }}</span>
             </div>
           </article>
+        </div>
+        <div v-if="repositories.length && !filteredRepositories.length" class="empty-state progress-empty">
+          <h2>조건에 맞는 프로젝트가 없습니다</h2>
+          <p>필터를 바꾸거나 초기화해서 다시 확인하세요.</p>
+          <button class="secondary" type="button" @click="resetFilters">필터 초기화</button>
         </div>
       </section>
 
@@ -71,7 +101,32 @@ export default {
       repositories: [],
       selected: null,
       status: {},
+      statusFilter: 'all',
+      projectFilter: 'all',
+      keyword: '',
     }
+  },
+  computed: {
+    projectNames() {
+      return [...new Set(this.repositories.map(repo => repo.projectName).filter(Boolean))].sort()
+    },
+    filteredRepositories() {
+      const keyword = this.keyword.toLowerCase()
+      return this.repositories.filter(repo => {
+        const status = repo.status || {}
+        const matchesProject = this.projectFilter === 'all' || repo.projectName === this.projectFilter
+        const matchesStatus =
+          this.statusFilter === 'all' ||
+          this.statusFilter === 'completed' && status.completed ||
+          this.statusFilter === 'step-passed' && status.currentStepPassed && !status.completed ||
+          this.statusFilter === 'in-progress' && !status.currentStepPassed && !status.completed
+        const matchesKeyword = !keyword ||
+          String(repo.projectName || '').toLowerCase().includes(keyword) ||
+          String(repo.name || '').toLowerCase().includes(keyword)
+
+        return matchesProject && matchesStatus && matchesKeyword
+      })
+    },
   },
   async created() {
     await this.load()
@@ -83,7 +138,8 @@ export default {
         const status = await getRepositoryStatus(repo.repositoryId)
         return { ...repo, status }
       }))
-      if (this.repositories[0]) await this.open(this.repositories[0])
+      const next = this.filteredRepositories[0] || this.repositories[0]
+      if (next) await this.open(next)
     },
     async open(repo) {
       this.selected = repo
@@ -102,6 +158,23 @@ export default {
       const current = Math.min(this.currentStep(repo), max)
       const passedBonus = repo.status && repo.status.currentStepPassed ? 1 : 0
       return Math.min(100, Math.round(((current - 1 + passedBonus) / max) * 100))
+    },
+    resetFilters() {
+      this.statusFilter = 'all'
+      this.projectFilter = 'all'
+      this.keyword = ''
+    },
+  },
+  watch: {
+    filteredRepositories(next) {
+      if (!next.length) {
+        this.selected = null
+        this.status = {}
+        return
+      }
+      if (!this.selected || !next.some(repo => repo.repositoryId === this.selected.repositoryId)) {
+        this.open(next[0])
+      }
     },
   },
 }

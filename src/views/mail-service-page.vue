@@ -31,22 +31,23 @@
           <div class="section-head">
             <div>
               <h2>발송 설정</h2>
-              <p>Spring Batch가 1시간마다 활성 구독자에게 랜덤 질문을 발송합니다.</p>
             </div>
           </div>
-          <label class="toggle-row">
-            <input type="checkbox" v-model="enabledDraft" @change="saveSubscription" />
-            <span>메일 발송 받기</span>
+          <label class="toggle-row mail-toggle-row" :class="{ disabled: !hasSubscriptionEmail }">
+            <input
+              type="checkbox"
+              v-model="enabledDraft"
+              :disabled="!hasSubscriptionEmail || loading"
+              @change="saveSubscription"
+            />
+            <span class="mail-switch" aria-hidden="true"></span>
+            <span>
+              <strong>{{ enabledDraft ? '발송 켜짐' : '발송 꺼짐' }}</strong>
+              <small>{{ hasSubscriptionEmail ? subscription.email : '마이페이지에서 이메일을 먼저 등록해 주세요.' }}</small>
+            </span>
           </label>
-          <form v-if="requiresEmailInput" class="form mail-email-form" @submit.prevent="saveSubscription">
-            <label>
-              수신 이메일
-              <input v-model.trim="emailDraft" type="email" placeholder="you@example.com" />
-            </label>
-            <p>GitHub 계정에서 이메일을 가져오지 못했습니다. 메일을 받을 주소를 먼저 입력하세요.</p>
-          </form>
           <div class="toolbar">
-            <button class="primary" type="button" @click="sendTest" :disabled="sending">
+            <button class="primary" type="button" @click="sendTest" :disabled="sending || !hasSubscriptionEmail">
               {{ sending ? '테스트 발송 중' : '테스트 메일 보내기' }}
             </button>
             <button class="secondary" type="button" @click="loadDashboard" :disabled="loading">새로고침</button>
@@ -54,14 +55,21 @@
           <p v-if="message" class="status" :class="{ fail: hasError, ok: !hasError }">{{ message }}</p>
         </article>
 
-        <article class="panel">
-          <h2>메일 콘텐츠 미리보기</h2>
-          <div v-if="previewContent" class="mail-question-card">
-            <span class="badge">{{ previewContent.track }}</span>
-            <h3>{{ previewContent.title }}</h3>
-            <button class="secondary small" type="button" @click="openContent(previewContent)">팝업으로 보기</button>
+        <article class="panel mail-delivery-panel">
+          <div class="mail-delivery-scene" :class="{ active: enabledDraft && hasSubscriptionEmail }">
+            <div class="mail-endpoint sender">
+              <span>DailyMong</span>
+            </div>
+            <div class="mail-route">
+              <span class="mail-route-line"></span>
+              <span class="mail-envelope envelope-a"></span>
+              <span class="mail-envelope envelope-b"></span>
+              <span class="mail-envelope envelope-c"></span>
+            </div>
+            <div class="mail-endpoint receiver">
+              <span>사용자</span>
+            </div>
           </div>
-          <p v-else>아직 등록된 메일 콘텐츠가 없습니다.</p>
         </article>
       </section>
 
@@ -69,9 +77,10 @@
         <div class="section-head">
           <div>
             <h2>문제 풀기</h2>
-            <p>DailyMong의 답변 제출/AI 피드백 흐름을 Codemong에 붙였습니다.</p>
           </div>
-          <button class="secondary small" type="button" @click="loadQuestion">랜덤 문제</button>
+        </div>
+        <div class="mail-solve-action">
+          <button class="secondary" type="button" @click="loadQuestion">다른 문제 풀기</button>
         </div>
         <div v-if="question" class="mail-question-card">
           <span class="badge">{{ question.category }} · {{ question.difficulty }} · {{ question.questionType }}</span>
@@ -125,38 +134,38 @@
         <div class="section-head">
           <div>
             <h2>메일 콘텐츠 목록</h2>
-            <p>DB에 등록된 md 콘텐츠를 팝업으로 확인할 수 있습니다.</p>
           </div>
         </div>
+        <div class="mail-content-filter">
+          <label>
+            <span>트랙</span>
+            <select v-model="contentTrackFilter">
+              <option value="all">전체</option>
+              <option v-for="track in contentTracks" :key="track" :value="track">{{ track }}</option>
+            </select>
+          </label>
+          <label>
+            <span>유형</span>
+            <select v-model="contentTypeFilter">
+              <option value="all">전체</option>
+              <option v-for="type in contentTypes" :key="type" :value="type">{{ type }}</option>
+            </select>
+          </label>
+          <label>
+            <span>검색</span>
+            <input v-model.trim="contentKeyword" type="search" placeholder="콘텐츠 제목 검색" />
+          </label>
+        </div>
         <ul class="mail-content-list">
-          <li v-for="content in contents" :key="content.id">
+          <li v-for="content in filteredContents" :key="content.id">
             <button type="button" @click="openContent(content)">
               <strong>{{ content.title }}</strong>
-              <span>{{ content.type }} #{{ content.displayOrder }}</span>
+              <span>{{ content.track || content.type }} #{{ content.displayOrder }}</span>
             </button>
           </li>
         </ul>
-      </section>
-
-      <section v-if="section === 'logs'" class="panel">
-        <div class="section-head">
-          <div>
-            <h2>최근 발송 로그</h2>
-            <p>SMTP 설정이 없으면 실제 발송은 스킵되고 로그만 남습니다.</p>
-          </div>
-        </div>
-        <ul v-if="recentLogs.length" class="mail-log-list">
-          <li v-for="log in recentLogs" :key="log.id" class="mail-log-item" :class="{ success: log.success }">
-            <div>
-              <strong>{{ log.contentTitle || log.questionTitle || log.mailType }}</strong>
-              <p>{{ log.message }}</p>
-            </div>
-            <span>{{ formatDate(log.createdAt) }}</span>
-          </li>
-        </ul>
-        <div v-else class="empty-state">
-          <h2>발송 로그가 없습니다</h2>
-          <p>테스트 메일을 보내거나 Batch가 실행되면 여기에 결과가 표시됩니다.</p>
+        <div v-if="contents.length && !filteredContents.length" class="empty-state mail-content-empty">
+          <h2>조건에 맞는 콘텐츠가 없습니다</h2>
         </div>
       </section>
     </main>
@@ -210,7 +219,6 @@ export default {
         { section: 'settings', label: '발송 설정', path: '/mail-service/settings' },
         { section: 'solve', label: '문제 풀기', path: '/mail-service/solve' },
         { section: 'contents', label: '콘텐츠', path: '/mail-service/contents' },
-        { section: 'logs', label: '발송 로그', path: '/mail-service/logs' },
       ],
       loading: false,
       sending: false,
@@ -218,16 +226,17 @@ export default {
       message: '',
       subscription: { enabled: false, email: '' },
       enabledDraft: false,
-      emailDraft: '',
       previewQuestion: null,
       previewContent: null,
-      recentLogs: [],
       question: null,
       answerContent: '',
       codeContent: '',
       answerResult: null,
       evaluating: false,
       contents: [],
+      contentTrackFilter: 'all',
+      contentTypeFilter: 'all',
+      contentKeyword: '',
       openedContent: null,
     }
   },
@@ -250,11 +259,9 @@ export default {
       try {
         const dashboard = await getMailDashboard()
         this.subscription = dashboard.subscription || { enabled: false, email: '' }
-        this.enabledDraft = this.subscription.enabled
-        this.emailDraft = this.subscription.email || ''
+        this.enabledDraft = Boolean(this.subscription.enabled && this.subscription.email)
         this.previewQuestion = dashboard.previewQuestion
         this.previewContent = dashboard.previewContent
-        this.recentLogs = dashboard.recentLogs || []
       } catch (error) {
         this.hasError = true
         this.message = error.message
@@ -402,15 +409,15 @@ export default {
         .replace(/>/g, '&gt;')
     },
     async saveSubscription() {
-      if (this.enabledDraft && !this.subscription.email && !this.emailDraft) {
+      if (!this.subscription.email) {
         this.hasError = true
-        this.message = '메일을 받을 이메일을 입력하세요.'
+        this.enabledDraft = false
+        this.message = '마이페이지에서 이메일을 먼저 등록해 주세요.'
         return
       }
       try {
-        this.subscription = await updateMailSubscription(this.enabledDraft, this.emailDraft)
+        this.subscription = await updateMailSubscription(this.enabledDraft, this.subscription.email)
         this.enabledDraft = this.subscription.enabled
-        this.emailDraft = this.subscription.email || ''
         this.hasError = false
         this.message = this.subscription.enabled ? '메일 구독이 켜졌습니다.' : '메일 구독이 꺼졌습니다.'
       } catch (error) {
@@ -434,14 +441,25 @@ export default {
         this.sending = false
       }
     },
-    formatDate(value) {
-      if (!value) return ''
-      return new Date(value).toLocaleString()
-    },
   },
   computed: {
-    requiresEmailInput() {
-      return this.enabledDraft && !this.subscription.email
+    hasSubscriptionEmail() {
+      return Boolean(this.subscription.email)
+    },
+    contentTracks() {
+      return [...new Set(this.contents.map(content => content.track).filter(Boolean))].sort()
+    },
+    contentTypes() {
+      return [...new Set(this.contents.map(content => content.type).filter(Boolean))].sort()
+    },
+    filteredContents() {
+      const keyword = this.contentKeyword.toLowerCase()
+      return this.contents.filter(content => {
+        const matchesTrack = this.contentTrackFilter === 'all' || content.track === this.contentTrackFilter
+        const matchesType = this.contentTypeFilter === 'all' || content.type === this.contentTypeFilter
+        const matchesKeyword = !keyword || String(content.title || '').toLowerCase().includes(keyword)
+        return matchesTrack && matchesType && matchesKeyword
+      })
     },
     lineNumbers() {
       const count = Math.max(10, this.codeContent.split('\n').length)
